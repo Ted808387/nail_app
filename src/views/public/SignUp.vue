@@ -1,27 +1,39 @@
 <template>
-  <div class="signup-page">
-    <h1>建立您的帳號</h1>
-    <form @submit.prevent="handleSignUp">
-      <div class="form-group">
-        <label for="name">姓名</label>
-        <input type="text" id="name" v-model="name" required>
-      </div>
-      <div class="form-group">
-        <label for="email">Email</label>
-        <input type="email" id="email" v-model="email" required>
-      </div>
-      <div class="form-group">
-        <label for="password">密碼</label>
-        <input type="password" id="password" v-model="password" required>
-      </div>
-      <div class="form-group">
-        <label for="admin-code">管理員驗證碼 (選填)</label>
-        <input type="text" id="admin-code" v-model="adminCode" placeholder="請輸入 BEAUTY2025">
-        <small v-if="isAdmin">您將註冊為管理員帳號。</small>
-      </div>
-      <button type="submit">註冊</button>
-    </form>
-    <p>已經有帳號了？ <router-link to="/account/signin">點此登入</router-link></p>
+  <div class="min-h-screen flex items-center justify-center bg-soft-blue-50 p-4">
+    <div class="w-full max-w-md bg-white rounded-2xl shadow-lg p-8 border border-soft-blue-200">
+      <h1 class="text-3xl font-bold text-soft-blue-800 text-center mb-8">建立您的帳號</h1>
+      <form @submit.prevent="handleSignUp">
+        <div class="mb-5">
+          <label for="name" class="block text-soft-blue-700 text-sm font-bold mb-2">姓名</label>
+          <input type="text" id="name" v-model="name" required
+            class="shadow appearance-none border border-soft-blue-300 rounded-xl w-full py-3 px-4 text-gray-700 leading-tight focus:outline-none focus:shadow-outline focus:border-soft-blue-400">
+        </div>
+        <div class="mb-5">
+          <label for="email" class="block text-soft-blue-700 text-sm font-bold mb-2">Email</label>
+          <input type="email" id="email" v-model="email" required
+            class="shadow appearance-none border border-soft-blue-300 rounded-xl w-full py-3 px-4 text-gray-700 leading-tight focus:outline-none focus:shadow-outline focus:border-soft-blue-400">
+        </div>
+        <div class="mb-6">
+          <label for="password" class="block text-soft-blue-700 text-sm font-bold mb-2">密碼</label>
+          <input type="password" id="password" v-model="password" required
+            class="shadow appearance-none border border-soft-blue-300 rounded-xl w-full py-3 px-4 text-gray-700 mb-3 leading-tight focus:outline-none focus:shadow-outline focus:border-soft-blue-400">
+        </div>
+        <div class="mb-6">
+          <label for="admin-code" class="block text-soft-blue-700 text-sm font-bold mb-2">管理員驗證碼 (選填)</label>
+          <input type="text" id="admin-code" v-model="adminCode" placeholder="請輸入 BEAUTY2025"
+            class="shadow appearance-none border border-soft-blue-300 rounded-xl w-full py-3 px-4 text-gray-700 leading-tight focus:outline-none focus:shadow-outline focus:border-soft-blue-400">
+          <p v-if="isAdmin" class="text-soft-blue-600 text-xs italic mt-2">您將註冊為管理員帳號。</p>
+        </div>
+        <button type="submit"
+          class="w-full bg-soft-blue-600 hover:bg-soft-blue-700 text-white font-bold py-3 px-4 rounded-xl focus:outline-none focus:shadow-outline transition duration-300">
+          註冊
+        </button>
+      </form>
+      <p class="text-center text-soft-blue-600 text-sm mt-6">
+        已經有帳號了？
+        <router-link to="/account/signin" class="text-soft-blue-700 hover:text-soft-blue-900 font-bold">點此登入</router-link>
+      </p>
+    </div>
   </div>
 </template>
 
@@ -48,10 +60,5 @@ function handleSignUp() {
 </script>
 
 <style scoped>
-.signup-page { max-width: 400px; margin: 50px auto; padding: 20px; border: 1px solid #ddd; border-radius: 5px; }
-.form-group { margin-bottom: 15px; }
-.form-group label { display: block; margin-bottom: 5px; }
-.form-group input { width: 100%; padding: 8px; box-sizing: border-box; }
-button { width: 100%; padding: 10px; background-color: #007bff; color: white; border: none; border-radius: 5px; cursor: pointer; }
-p { margin-top: 20px; text-align: center; }
+/* 移除舊有 CSS，完全使用 Tailwind */
 </style>

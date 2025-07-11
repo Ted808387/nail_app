@@ -1,18 +1,28 @@
 <template>
-  <div class="signin-page">
-    <h1>登入</h1>
-    <form @submit.prevent="handleSignIn">
-      <div class="form-group">
-        <label for="email">Email</label>
-        <input type="email" id="email" v-model="email" required>
-      </div>
-      <div class="form-group">
-        <label for="password">密碼</label>
-        <input type="password" id="password" v-model="password" required>
-      </div>
-      <button type="submit">登入</button>
-    </form>
-    <p>還沒有帳號？ <router-link to="/account/signup">點此註冊</router-link></p>
+  <div class="min-h-screen flex items-center justify-center bg-soft-blue-50 p-4">
+    <div class="w-full max-w-md bg-white rounded-2xl shadow-lg p-8 border border-soft-blue-200">
+      <h1 class="text-3xl font-bold text-soft-blue-800 text-center mb-8">登入</h1>
+      <form @submit.prevent="handleSignIn">
+        <div class="mb-5">
+          <label for="email" class="block text-soft-blue-700 text-sm font-bold mb-2">Email</label>
+          <input type="email" id="email" v-model="email" required
+            class="shadow appearance-none border border-soft-blue-300 rounded-xl w-full py-3 px-4 text-gray-700 leading-tight focus:outline-none focus:shadow-outline focus:border-soft-blue-400">
+        </div>
+        <div class="mb-6">
+          <label for="password" class="block text-soft-blue-700 text-sm font-bold mb-2">密碼</label>
+          <input type="password" id="password" v-model="password" required
+            class="shadow appearance-none border border-soft-blue-300 rounded-xl w-full py-3 px-4 text-gray-700 mb-3 leading-tight focus:outline-none focus:shadow-outline focus:border-soft-blue-400">
+        </div>
+        <button type="submit"
+          class="w-full bg-soft-blue-600 hover:bg-soft-blue-700 text-white font-bold py-3 px-4 rounded-xl focus:outline-none focus:shadow-outline transition duration-300">
+          登入
+        </button>
+      </form>
+      <p class="text-center text-soft-blue-600 text-sm mt-6">
+        還沒有帳號？
+        <router-link to="/account/signup" class="text-soft-blue-700 hover:text-soft-blue-900 font-bold">點此註冊</router-link>
+      </p>
+    </div>
   </div>
 </template>
 
@@ -39,10 +49,5 @@ function handleSignIn() {
 </script>
 
 <style scoped>
-.signin-page { max-width: 400px; margin: 50px auto; padding: 20px; border: 1px solid #ddd; border-radius: 5px; }
-.form-group { margin-bottom: 15px; }
-.form-group label { display: block; margin-bottom: 5px; }
-.form-group input { width: 100%; padding: 8px; box-sizing: border-box; }
-button { width: 100%; padding: 10px; background-color: #007bff; color: white; border: none; border-radius: 5px; cursor: pointer; }
-p { margin-top: 20px; text-align: center; }
+/* 移除舊有 CSS，完全使用 Tailwind */
 </style>

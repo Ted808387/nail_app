@@ -1,31 +1,44 @@
 <template>
-  <div class="account-settings-page">
-    <h1>帳號設定</h1>
-    <form @submit.prevent="updateProfile">
-      <h2>修改基本資料</h2>
-      <div class="form-group">
-        <label for="name">姓名</label>
-        <input type="text" id="name" v-model="profile.name">
-      </div>
-      <div class="form-group">
-        <label for="phone">聯絡電話</label>
-        <input type="tel" id="phone" v-model="profile.phone">
-      </div>
-      <button type="submit">儲存變更</button>
-    </form>
+  <div class="min-h-screen bg-soft-blue-50 p-8">
+    <h1 class="text-4xl font-bold text-soft-blue-800 text-center mb-10">帳號設定</h1>
 
-    <form @submit.prevent="changePassword" class="password-form">
-      <h2>變更密碼</h2>
-      <div class="form-group">
-        <label for="current-password">目前密碼</label>
-        <input type="password" id="current-password" v-model="password.current">
-      </div>
-      <div class="form-group">
-        <label for="new-password">新密碼</label>
-        <input type="password" id="new-password" v-model="password.new">
-      </div>
-      <button type="submit">更新密碼</button>
-    </form>
+    <div class="max-w-2xl mx-auto bg-white rounded-2xl shadow-lg p-8 border border-soft-blue-200">
+      <form @submit.prevent="updateProfile" class="mb-10 pb-10 border-b border-soft-blue-200">
+        <h2 class="text-3xl font-semibold text-soft-blue-700 mb-6">修改基本資料</h2>
+        <div class="mb-5">
+          <label for="name" class="block text-soft-blue-700 text-sm font-bold mb-2">姓名</label>
+          <input type="text" id="name" v-model="profile.name"
+            class="shadow appearance-none border border-soft-blue-300 rounded-xl w-full py-3 px-4 text-gray-700 leading-tight focus:outline-none focus:shadow-outline focus:border-soft-blue-400">
+        </div>
+        <div class="mb-6">
+          <label for="phone" class="block text-soft-blue-700 text-sm font-bold mb-2">聯絡電話</label>
+          <input type="tel" id="phone" v-model="profile.phone"
+            class="shadow appearance-none border border-soft-blue-300 rounded-xl w-full py-3 px-4 text-gray-700 leading-tight focus:outline-none focus:shadow-outline focus:border-soft-blue-400">
+        </div>
+        <button type="submit"
+          class="px-8 py-3 bg-soft-blue-600 text-white text-lg font-semibold rounded-full shadow-md hover:bg-soft-blue-700 transition duration-300">
+          儲存變更
+        </button>
+      </form>
+
+      <form @submit.prevent="changePassword">
+        <h2 class="text-3xl font-semibold text-soft-blue-700 mb-6">變更密碼</h2>
+        <div class="mb-5">
+          <label for="current-password" class="block text-soft-blue-700 text-sm font-bold mb-2">目前密碼</label>
+          <input type="password" id="current-password" v-model="password.current"
+            class="shadow appearance-none border border-soft-blue-300 rounded-xl w-full py-3 px-4 text-gray-700 leading-tight focus:outline-none focus:shadow-outline focus:border-soft-blue-400">
+        </div>
+        <div class="mb-6">
+          <label for="new-password" class="block text-soft-blue-700 text-sm font-bold mb-2">新密碼</label>
+          <input type="password" id="new-password" v-model="password.new"
+            class="shadow appearance-none border border-soft-blue-300 rounded-xl w-full py-3 px-4 text-gray-700 leading-tight focus:outline-none focus:shadow-outline focus:border-soft-blue-400">
+        </div>
+        <button type="submit"
+          class="px-8 py-3 bg-soft-blue-600 text-white text-lg font-semibold rounded-full shadow-md hover:bg-soft-blue-700 transition duration-300">
+          更新密碼
+        </button>
+      </form>
+    </div>
   </div>
 </template>
 
@@ -55,10 +68,5 @@ function changePassword() {
 </script>
 
 <style scoped>
-.account-settings-page { max-width: 600px; margin: 20px auto; padding: 20px; }
-.form-group { margin-bottom: 15px; }
-.form-group label { display: block; margin-bottom: 5px; }
-.form-group input { width: 100%; padding: 8px; box-sizing: border-box; }
-button { padding: 10px 15px; background-color: #007bff; color: white; border: none; border-radius: 5px; cursor: pointer; }
-.password-form { margin-top: 40px; }
+/* 移除舊有 CSS，完全使用 Tailwind */
 </style>
