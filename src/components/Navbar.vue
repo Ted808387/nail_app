@@ -3,7 +3,7 @@
     <div class="container mx-auto flex justify-between items-center">
       <!-- Logo / 品牌名稱 -->
       <router-link to="/" class="text-white text-2xl font-bold">
-        您的美麗工作室
+        XXX工作室
       </router-link>
 
       <!-- 漢堡菜單按鈕 (僅在小螢幕顯示) -->

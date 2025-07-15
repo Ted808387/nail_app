@@ -80,7 +80,7 @@
 
     <!-- 頁腳 (可選，未來可獨立為組件) -->
     <footer class="w-full bg-soft-blue-800 text-white py-8 text-center">
-      <p class="text-sm sm:text-base">&copy; 2025 您的美麗工作室. All rights reserved.</p>
+      <p class="text-sm sm:text-base">&copy; 2025 XXX工作室. All rights reserved.</p>
     </footer>
   </div>
 </template>

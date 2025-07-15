@@ -112,7 +112,7 @@
 <script setup>
 import { ref, onMounted } from 'vue';
 import { useRouter } from 'vue-router';
-import { loadBookings, loadClients, loadServices } from '../../services/dataService'; // 引入 dataService
+import { loadBookings, loadClients, loadServices } from '../../services/dataService';
 
 const router = useRouter();
 
@@ -186,7 +186,7 @@ onMounted(() => {
 function viewBookingDetail(bookingId) {
   // 導向到預約詳情頁面，可能需要一個新的路由或彈窗
   console.log('查看預約詳情:', bookingId);
-  // router.push(`/admin/bookings/${bookingId}`); // 假設有這樣的路由
+  router.push({ name: 'BookingDetail', params: { id: bookingId } }); // 導向預約詳情頁面
 }
 </script>
 
