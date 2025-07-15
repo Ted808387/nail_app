@@ -1,5 +1,13 @@
 <template>
   <div class="min-h-screen flex flex-col items-center justify-center bg-soft-blue-50">
+    <!-- 新增的導航區塊 -->
+    <nav class="w-full flex justify-end p-4 absolute top-0 right-0 z-20">
+      <div class="space-x-4">
+        <router-link to="/account/signin" class="text-soft-blue-700 hover:text-soft-blue-900 font-bold">登入</router-link>
+        <router-link to="/account/signup" class="px-4 py-2 bg-soft-blue-600 text-white text-sm font-semibold rounded-full shadow-md hover:bg-soft-blue-700 transition duration-300">註冊</router-link>
+      </div>
+    </nav>
+
     <!-- 品牌形象區 - 輪播/影片 Placeholder -->
     <section class="relative w-full h-96 bg-soft-blue-300 flex items-center justify-center text-white text-center overflow-hidden shadow-lg">
       <img src="https://via.placeholder.com/1920x1080?text=Your+Beautiful+Studio" alt="Studio Image" class="absolute inset-0 w-full h-full object-cover opacity-75">

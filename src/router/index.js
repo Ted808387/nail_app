@@ -79,6 +79,12 @@ const routes = [
     path: '/admin-setup',
     name: 'AdminSetup',
     component: AdminSetup
+  },
+  // Catch-all route for 404 - redirect to home
+  {
+    path: '/:pathMatch(.*)*',
+    name: 'NotFound',
+    redirect: '/'
   }
 ]
 
