@@ -1,25 +1,25 @@
 <template>
-  <div class="min-h-screen bg-soft-blue-50 p-8">
-    <h1 class="text-4xl font-bold text-soft-blue-800 text-center mb-10">服務項目管理</h1>
+  <div class="min-h-screen bg-soft-blue-50 p-4 sm:p-6 md:p-8">
+    <h1 class="text-3xl sm:text-4xl font-bold text-soft-blue-800 text-center mb-8 sm:mb-10">服務項目管理</h1>
 
-    <div class="max-w-6xl mx-auto bg-white rounded-2xl shadow-lg p-8 border border-soft-blue-200">
+    <div class="max-w-6xl mx-auto bg-white rounded-2xl shadow-lg p-6 sm:p-8 md:p-10 border border-soft-blue-200">
       <div class="flex flex-col md:flex-row justify-between items-center mb-6 space-y-4 md:space-y-0 md:space-x-4">
         <button @click="showModal(null)"
-          class="px-6 py-2 bg-soft-blue-600 text-white rounded-full shadow-md hover:bg-soft-blue-700 transition duration-300">
+          class="px-5 py-2 bg-soft-blue-600 text-white rounded-full shadow-md hover:bg-soft-blue-700 transition duration-300 text-base sm:text-lg">
           新增服務項目
         </button>
-        <div class="flex space-x-2">
-          <button @click="bulkAction('activate')" :disabled="selectedServices.length === 0"
-            class="px-4 py-2 bg-green-500 text-white rounded-full text-sm hover:bg-green-600 transition duration-300 disabled:opacity-50 disabled:cursor-not-allowed">
-            批量上架
+        <div class="flex flex-wrap justify-center sm:justify-end gap-2">
+          <button @click="bulkAction('activate')" :disabled="selectedServices.length === 0 || isLoading"
+            class="px-3 py-1 bg-green-500 text-white rounded-full text-xs sm:text-sm hover:bg-green-600 transition duration-300 disabled:opacity-50 disabled:cursor-not-allowed">
+            {{ isLoading ? '處理中...' : '批量上架' }}
           </button>
-          <button @click="bulkAction('deactivate')" :disabled="selectedServices.length === 0"
-            class="px-4 py-2 bg-yellow-500 text-white rounded-full text-sm hover:bg-yellow-600 transition duration-300 disabled:opacity-50 disabled:cursor-not-allowed">
-            批量下架
+          <button @click="bulkAction('deactivate')" :disabled="selectedServices.length === 0 || isLoading"
+            class="px-3 py-1 bg-yellow-500 text-white rounded-full text-xs sm:text-sm hover:bg-yellow-600 transition duration-300 disabled:opacity-50 disabled:cursor-not-allowed">
+            {{ isLoading ? '處理中...' : '批量下架' }}
           </button>
-          <button @click="bulkAction('delete')" :disabled="selectedServices.length === 0"
-            class="px-4 py-2 bg-red-500 text-white rounded-full text-sm hover:bg-red-600 transition duration-300 disabled:opacity-50 disabled:cursor-not-allowed">
-            批量刪除
+          <button @click="bulkAction('delete')" :disabled="selectedServices.length === 0 || isLoading"
+            class="px-3 py-1 bg-red-500 text-white rounded-full text-xs sm:text-sm hover:bg-red-600 transition duration-300 disabled:opacity-50 disabled:cursor-not-allowed">
+            {{ isLoading ? '處理中...' : '批量刪除' }}
           </button>
         </div>
       </div>
@@ -28,50 +28,51 @@
         <table class="min-w-full bg-white rounded-xl overflow-hidden">
           <thead class="bg-soft-blue-200">
             <tr>
-              <th class="py-3 px-4 text-left text-soft-blue-800 font-semibold">
+              <th class="py-2 sm:py-3 px-3 sm:px-4 text-left text-soft-blue-800 font-semibold text-xs sm:text-sm">
                 <input type="checkbox" @change="toggleSelectAll" :checked="isAllSelected">
               </th>
-              <th class="py-3 px-4 text-left text-soft-blue-800 font-semibold">圖片</th>
-              <th class="py-3 px-4 text-left text-soft-blue-800 font-semibold">服務名稱</th>
-              <th class="py-3 px-4 text-left text-soft-blue-800 font-semibold">類別</th>
-              <th class="py-3 px-4 text-left text-soft-blue-800 font-semibold">價格</th>
-              <th class="py-3 px-4 text-left text-soft-blue-800 font-semibold">時長 (分)</th>
-              <th class="py-3 px-4 text-left text-soft-blue-800 font-semibold">狀態</th>
-              <th class="py-3 px-4 text-left text-soft-blue-800 font-semibold">操作</th>
+              <th class="py-2 sm:py-3 px-3 sm:px-4 text-left text-soft-blue-800 font-semibold text-xs sm:text-sm">圖片</th>
+              <th class="py-2 sm:py-3 px-3 sm:px-4 text-left text-soft-blue-800 font-semibold text-xs sm:text-sm">服務名稱</th>
+              <th class="py-2 sm:py-3 px-3 sm:px-4 text-left text-soft-blue-800 font-semibold text-xs sm:text-sm">類別</th>
+              <th class="py-2 sm:py-3 px-3 sm:px-4 text-left text-soft-blue-800 font-semibold text-xs sm:text-sm">價格</th>
+              <th class="py-2 sm:py-3 px-3 sm:px-4 text-left text-soft-blue-800 font-semibold text-xs sm:text-sm">時長 (分)</th>
+              <th class="py-2 sm:py-3 px-3 sm:px-4 text-left text-soft-blue-800 font-semibold text-xs sm:text-sm">狀態</th>
+              <th class="py-2 sm:py-3 px-3 sm:px-4 text-left text-soft-blue-800 font-semibold text-xs sm:text-sm">操作</th>
             </tr>
           </thead>
           <tbody>
             <tr v-for="service in services" :key="service.id" class="border-b border-soft-blue-100 last:border-b-0 hover:bg-soft-blue-50">
-              <td class="py-3 px-4">
+              <td class="py-2 sm:py-3 px-3 sm:px-4">
                 <input type="checkbox" v-model="selectedServices" :value="service.id">
               </td>
-              <td class="py-3 px-4">
-                <img :src="service.imageUrl || 'https://via.placeholder.com/50?text=Service'" alt="Service Image" class="w-12 h-12 object-cover rounded-md">
+              <td class="py-2 sm:py-3 px-3 sm:px-4">
+                <img :src="service.imageUrl || 'https://via.placeholder.com/50?text=Service'" :alt="service.name"
+                  class="w-10 h-10 sm:w-12 sm:h-12 object-cover rounded-md">
               </td>
-              <td class="py-3 px-4 text-soft-blue-700">{{ service.name }}</td>
-              <td class="py-3 px-4 text-soft-blue-700">{{ service.category }}</td>
-              <td class="py-3 px-4 text-soft-blue-700">NT$ {{ service.price }}</td>
-              <td class="py-3 px-4 text-soft-blue-700">{{ service.duration }}</td>
-              <td class="py-3 px-4">
+              <td class="py-2 sm:py-3 px-3 sm:px-4 text-soft-blue-700 text-xs sm:text-sm">{{ service.name }}</td>
+              <td class="py-2 sm:py-3 px-3 sm:px-4 text-soft-blue-700 text-xs sm:text-sm">{{ service.category }}</td>
+              <td class="py-2 sm:py-3 px-3 sm:px-4 text-soft-blue-700 text-xs sm:text-sm">NT$ {{ service.price }}</td>
+              <td class="py-2 sm:py-3 px-3 sm:px-4 text-soft-blue-700 text-xs sm:text-sm">{{ service.duration }}</td>
+              <td class="py-2 sm:py-3 px-3 sm:px-4">
                 <span :class="[service.isActive ? 'bg-green-200 text-green-800' : 'bg-red-200 text-red-800']"
-                  class="px-3 py-1 rounded-full text-sm font-medium">
+                  class="px-2 py-0.5 rounded-full text-xs font-medium">
                   {{ service.isActive ? '上架中' : '已下架' }}
                 </span>
               </td>
-              <td class="py-3 px-4 flex space-x-2">
-                <button @click="showModal(service)"
-                  class="px-4 py-2 bg-blue-500 text-white rounded-full text-sm hover:bg-blue-600 transition duration-300">
+              <td class="py-2 sm:py-3 px-3 sm:px-4 flex flex-col sm:flex-row space-y-1 sm:space-y-0 sm:space-x-2">
+                <button @click="showModal(service)" :disabled="isLoading"
+                  class="px-3 py-1 bg-blue-500 text-white rounded-full text-xs hover:bg-blue-600 transition duration-300 disabled:opacity-50 disabled:cursor-not-allowed">
                   編輯
                 </button>
-                <button @click="toggleStatus(service)"
+                <button @click="toggleStatus(service)" :disabled="isLoading"
                   :class="[service.isActive ? 'bg-yellow-500 hover:bg-yellow-600' : 'bg-green-500 hover:bg-green-600']"
-                  class="px-4 py-2 text-white rounded-full text-sm transition duration-300">
+                  class="px-3 py-1 text-white rounded-full text-xs transition duration-300 disabled:opacity-50 disabled:cursor-not-allowed">
                   {{ service.isActive ? '下架' : '上架' }}
                 </button>
               </td>
             </tr>
             <tr v-if="services.length === 0">
-              <td colspan="8" class="py-8 text-center text-soft-blue-600">目前沒有服務項目。</td>
+              <td colspan="8" class="py-6 sm:py-8 text-center text-soft-blue-600 text-base sm:text-lg">目前沒有服務項目。</td>
             </tr>
           </tbody>
         </table>
@@ -79,24 +80,24 @@
 
       <!-- 新增/編輯服務的 Modal -->
       <div v-if="isModalOpen" class="fixed inset-0 bg-black bg-opacity-40 flex items-center justify-center z-50 p-4">
-        <div class="bg-white rounded-2xl shadow-xl p-8 w-full max-w-md relative border border-soft-blue-200">
-          <button @click="closeModal" class="absolute top-4 right-4 text-gray-500 hover:text-gray-700 text-3xl font-bold">&times;</button>
-          <h2 class="text-3xl font-bold text-soft-blue-800 mb-6">{{ currentService.id ? '編輯' : '新增' }}服務</h2>
+        <div class="bg-white rounded-2xl shadow-xl p-6 sm:p-8 w-full max-w-md relative border border-soft-blue-200">
+          <button @click="closeModal" class="absolute top-3 right-3 text-gray-500 hover:text-gray-700 text-2xl sm:text-3xl font-bold">&times;</button>
+          <h2 class="text-2xl sm:text-3xl font-bold text-soft-blue-800 mb-5 sm:mb-6">{{ currentService.id ? '編輯' : '新增' }}服務</h2>
           <form @submit.prevent="saveService">
-            <div class="mb-4">
-              <label for="service-name" class="block text-soft-blue-700 text-sm font-bold mb-2">服務名稱 <span class="text-red-500">*</span></label>
+            <div class="mb-3 sm:mb-4">
+              <label for="service-name" class="block text-soft-blue-700 text-sm sm:text-base font-bold mb-2">服務名稱 <span class="text-red-500">*</span></label>
               <input type="text" id="service-name" v-model="currentService.name" placeholder="服務名稱" required
-                class="shadow appearance-none border border-soft-blue-300 rounded-xl w-full py-3 px-4 text-gray-700 leading-tight focus:outline-none focus:shadow-outline focus:border-soft-blue-400">
+                class="shadow appearance-none border border-soft-blue-300 rounded-xl w-full py-2 sm:py-3 px-3 sm:px-4 text-gray-700 leading-tight focus:outline-none focus:shadow-outline focus:border-soft-blue-400">
             </div>
-            <div class="mb-4">
-              <label for="service-description" class="block text-soft-blue-700 text-sm font-bold mb-2">描述</label>
+            <div class="mb-3 sm:mb-4">
+              <label for="service-description" class="block text-soft-blue-700 text-sm sm:text-base font-bold mb-2">描述</label>
               <textarea id="service-description" v-model="currentService.description" rows="3" placeholder="服務詳細描述"
-                class="shadow appearance-none border border-soft-blue-300 rounded-xl w-full py-3 px-4 text-gray-700 leading-tight focus:outline-none focus:shadow-outline focus:border-soft-blue-400"></textarea>
+                class="shadow appearance-none border border-soft-blue-300 rounded-xl w-full py-2 sm:py-3 px-3 sm:px-4 text-gray-700 leading-tight focus:outline-none focus:shadow-outline focus:border-soft-blue-400"></textarea>
             </div>
-            <div class="mb-4">
-              <label for="service-category" class="block text-soft-blue-700 text-sm font-bold mb-2">類別</label>
+            <div class="mb-3 sm:mb-4">
+              <label for="service-category" class="block text-soft-blue-700 text-sm sm:text-base font-bold mb-2">類別</label>
               <select id="service-category" v-model="currentService.category"
-                class="shadow appearance-none border border-soft-blue-300 rounded-xl w-full py-3 px-4 text-gray-700 leading-tight focus:outline-none focus:shadow-outline focus:border-soft-blue-400">
+                class="shadow appearance-none border border-soft-blue-300 rounded-xl w-full py-2 sm:py-3 px-3 sm:px-4 text-gray-700 leading-tight focus:outline-none focus:shadow-outline focus:border-soft-blue-400">
                 <option value="">請選擇</option>
                 <option value="手部護理">手部護理</option>
                 <option value="美睫">美睫</option>
@@ -105,32 +106,32 @@
                 <option value="足部護理">足部護理</option>
               </select>
             </div>
-            <div class="mb-4">
-              <label for="service-price" class="block text-soft-blue-700 text-sm font-bold mb-2">價格 <span class="text-red-500">*</span></label>
+            <div class="mb-3 sm:mb-4">
+              <label for="service-price" class="block text-soft-blue-700 text-sm sm:text-base font-bold mb-2">價格 <span class="text-red-500">*</span></label>
               <input type="number" id="service-price" v-model="currentService.price" placeholder="價格" required
-                class="shadow appearance-none border border-soft-blue-300 rounded-xl w-full py-3 px-4 text-gray-700 leading-tight focus:outline-none focus:shadow-outline focus:border-soft-blue-400">
+                class="shadow appearance-none border border-soft-blue-300 rounded-xl w-full py-2 sm:py-3 px-3 sm:px-4 text-gray-700 leading-tight focus:outline-none focus:shadow-outline focus:border-soft-blue-400">
             </div>
-            <div class="mb-4">
-              <label for="service-duration" class="block text-soft-blue-700 text-sm font-bold mb-2">時長 (分鐘) <span class="text-red-500">*</span></label>
+            <div class="mb-3 sm:mb-4">
+              <label for="service-duration" class="block text-soft-blue-700 text-sm sm:text-base font-bold mb-2">時長 (分鐘) <span class="text-red-500">*</span></label>
               <input type="number" id="service-duration" v-model="currentService.duration" placeholder="所需時間" required
-                class="shadow appearance-none border border-soft-blue-300 rounded-xl w-full py-3 px-4 text-gray-700 leading-tight focus:outline-none focus:shadow-outline focus:border-soft-blue-400">
+                class="shadow appearance-none border border-soft-blue-300 rounded-xl w-full py-2 sm:py-3 px-3 sm:px-4 text-gray-700 leading-tight focus:outline-none focus:shadow-outline focus:border-soft-blue-400">
             </div>
-            <div class="mb-6">
-              <label for="service-image" class="block text-soft-blue-700 text-sm font-bold mb-2">圖片 URL</label>
+            <div class="mb-5 sm:mb-6">
+              <label for="service-image" class="block text-soft-blue-700 text-sm sm:text-base font-bold mb-2">圖片 URL</label>
               <input type="text" id="service-image" v-model="currentService.imageUrl" placeholder="圖片 URL"
-                class="shadow appearance-none border border-soft-blue-300 rounded-xl w-full py-3 px-4 text-gray-700 leading-tight focus:outline-none focus:shadow-outline focus:border-soft-blue-400">
+                class="shadow appearance-none border border-soft-blue-300 rounded-xl w-full py-2 sm:py-3 px-3 sm:px-4 text-gray-700 leading-tight focus:outline-none focus:shadow-outline focus:border-soft-blue-400">
             </div>
-            <div class="mb-6 flex items-center">
-              <input type="checkbox" id="service-active" v-model="currentService.isActive" class="mr-2 leading-tight">
-              <label for="service-active" class="text-soft-blue-700 text-sm">上架</label>
+            <div class="mb-5 sm:mb-6 flex items-center">
+              <input type="checkbox" id="service-active" v-model="currentService.isActive" class="mr-2 leading-tight h-4 w-4 text-soft-blue-600 focus:ring-soft-blue-500 border-gray-300 rounded">
+              <label for="service-active" class="text-soft-blue-700 text-sm sm:text-base">上架</label>
             </div>
-            <button type="submit"
-              class="w-full bg-soft-blue-600 hover:bg-soft-blue-700 text-white font-bold py-3 px-4 rounded-xl focus:outline-none focus:shadow-outline transition duration-300">
-              儲存
+            <button type="submit" :disabled="isLoading"
+              class="w-full bg-soft-blue-600 hover:bg-soft-blue-700 text-white font-bold py-2 sm:py-3 px-3 sm:px-4 rounded-xl focus:outline-none focus:shadow-outline transition duration-300 disabled:opacity-50 disabled:cursor-not-allowed">
+              {{ isLoading ? '儲存中...' : (currentService.id ? '儲存變更' : '新增服務') }}
             </button>
-            <button v-if="currentService.id" @click="deleteService(currentService.id)" type="button"
-              class="w-full mt-4 bg-red-500 hover:bg-red-600 text-white font-bold py-3 px-4 rounded-xl focus:outline-none focus:shadow-outline transition duration-300">
-              刪除服務
+            <button v-if="currentService.id" @click="deleteService(currentService.id)" type="button" :disabled="isLoading"
+              class="w-full mt-3 sm:mt-4 bg-red-500 hover:bg-red-600 text-white font-bold py-2 sm:py-3 px-3 sm:px-4 rounded-xl focus:outline-none focus:shadow-outline transition duration-300 disabled:opacity-50 disabled:cursor-not-allowed">
+              {{ isLoading ? '刪除中...' : '刪除服務' }}
             </button>
           </form>
         </div>
@@ -151,6 +152,7 @@ const services = ref([
 const isModalOpen = ref(false);
 const currentService = ref({});
 const selectedServices = ref([]); // 用於批量操作
+const isLoading = ref(false); // 新增載入狀態
 
 const isAllSelected = computed(() => {
   return services.value.length > 0 && selectedServices.value.length === services.value.length;
@@ -174,43 +176,70 @@ function closeModal() {
   currentService.value = {}; // 清空
 }
 
-function saveService() {
+async function saveService() {
   if (!currentService.value.name || !currentService.value.price || !currentService.value.duration) {
     alert('請填寫服務名稱、價格和時長。');
     return;
   }
 
-  if (currentService.value.id) {
-    // 編輯現有服務
-    const index = services.value.findIndex(s => s.id === currentService.value.id);
-    if (index !== -1) {
-      services.value[index] = { ...currentService.value };
-      alert('服務已更新！');
+  isLoading.value = true; // 開始載入
+  try {
+    await new Promise(resolve => setTimeout(resolve, 800)); // 模擬網路延遲
+
+    if (currentService.value.id) {
+      // 編輯現有服務
+      const index = services.value.findIndex(s => s.id === currentService.value.id);
+      if (index !== -1) {
+        services.value[index] = { ...currentService.value };
+        alert('服務已更新！');
+      }
+    } else {
+      // 新增服務
+      currentService.value.id = services.value.length > 0 ? Math.max(...services.value.map(s => s.id)) + 1 : 1;
+      services.value.push({ ...currentService.value });
+      alert('服務已新增！');
     }
-  } else {
-    // 新增服務
-    currentService.value.id = services.value.length > 0 ? Math.max(...services.value.map(s => s.id)) + 1 : 1;
-    services.value.push({ ...currentService.value });
-    alert('服務已新增！');
-  }
-  closeModal();
-}
-
-function toggleStatus(service) {
-  service.isActive = !service.isActive;
-  alert(`服務 "${service.name}" 已${service.isActive ? '上架' : '下架'}！`);
-  // 實際應呼叫後端 API 更新狀態
-}
-
-function deleteService(id) {
-  if (confirm('您確定要刪除此服務嗎？')) {
-    services.value = services.value.filter(s => s.id !== id);
-    alert('服務已刪除！');
     closeModal();
+  } catch (error) {
+    console.error('儲存服務失敗:', error);
+    alert('儲存服務失敗，請稍後再試。');
+  } finally {
+    isLoading.value = false; // 結束載入
   }
 }
 
-function bulkAction(action) {
+async function toggleStatus(service) {
+  isLoading.value = true; // 開始載入
+  try {
+    await new Promise(resolve => setTimeout(resolve, 500)); // 模擬網路延遲
+    service.isActive = !service.isActive;
+    alert(`服務 "${service.name}" 已${service.isActive ? '上架' : '下架'}！`);
+  } catch (error) {
+    console.error('切換服務狀態失敗:', error);
+    alert('切換服務狀態失敗，請稍後再試。');
+  } finally {
+    isLoading.value = false; // 結束載入
+  }
+}
+
+async function deleteService(id) {
+  if (confirm('您確定要刪除此服務嗎？')) {
+    isLoading.value = true; // 開始載入
+    try {
+      await new Promise(resolve => setTimeout(resolve, 800)); // 模擬網路延遲
+      services.value = services.value.filter(s => s.id !== id);
+      alert('服務已刪除！');
+      closeModal();
+    } catch (error) {
+      console.error('刪除服務失敗:', error);
+      alert('刪除服務失敗，請稍後再試。');
+    } finally {
+      isLoading.value = false; // 結束載入
+    }
+  }
+}
+
+async function bulkAction(action) {
   if (selectedServices.value.length === 0) {
     alert('請選擇至少一項服務。');
     return;
@@ -231,21 +260,30 @@ function bulkAction(action) {
   }
 
   if (confirm(confirmMessage)) {
-    selectedServices.value.forEach(id => {
-      const service = services.value.find(s => s.id === id);
-      if (service) {
-        if (action === 'activate') {
-          service.isActive = true;
-        } else if (action === 'deactivate') {
-          service.isActive = false;
-        } else if (action === 'delete') {
-          services.value = services.value.filter(s => s.id !== id);
+    isLoading.value = true; // 開始載入
+    try {
+      await new Promise(resolve => setTimeout(resolve, 1200)); // 模擬網路延遲
+
+      selectedServices.value.forEach(id => {
+        const service = services.value.find(s => s.id === id);
+        if (service) {
+          if (action === 'activate') {
+            service.isActive = true;
+          } else if (action === 'deactivate') {
+            service.isActive = false;
+          } else if (action === 'delete') {
+            services.value = services.value.filter(s => s.id !== id);
+          }
         }
-      }
-    });
-    selectedServices.value = []; // 清空選中
-    alert(successMessage);
-    // 實際應呼叫後端 API 執行批量操作
+      });
+      selectedServices.value = []; // 清空選中
+      alert(successMessage);
+    } catch (error) {
+      console.error('批量操作失敗:', error);
+      alert('批量操作失敗，請稍後再試。');
+    } finally {
+      isLoading.value = false; // 結束載入
+    }
   }
 }
 </script>

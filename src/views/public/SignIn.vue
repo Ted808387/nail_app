@@ -1,39 +1,39 @@
 <template>
-  <div class="min-h-screen flex items-center justify-center bg-soft-blue-50 p-4">
-    <div class="w-full max-w-md bg-white rounded-2xl shadow-lg p-8 border border-soft-blue-200">
-      <h1 class="text-3xl font-bold text-soft-blue-800 text-center mb-8">登入</h1>
+  <div class="min-h-screen flex items-center justify-center bg-soft-blue-50 p-4 sm:p-6 md:p-8">
+    <div class="w-full max-w-md bg-white rounded-2xl shadow-lg p-6 sm:p-8 md:p-10 border border-soft-blue-200">
+      <h1 class="text-2xl sm:text-3xl font-bold text-soft-blue-800 text-center mb-6 sm:mb-8">登入</h1>
       <form @submit.prevent="handleSignIn">
-        <div class="mb-5">
-          <label for="email" class="block text-soft-blue-700 text-sm font-bold mb-2">Email <span class="text-red-500">*</span></label>
+        <div class="mb-4 sm:mb-5">
+          <label for="email" class="block text-soft-blue-700 text-sm sm:text-base font-bold mb-2">Email <span class="text-red-500">*</span></label>
           <input type="email" id="email" v-model="email" required
-            class="shadow appearance-none border border-soft-blue-300 rounded-xl w-full py-3 px-4 text-gray-700 leading-tight focus:outline-none focus:shadow-outline focus:border-soft-blue-400">
+            class="shadow appearance-none border border-soft-blue-300 rounded-xl w-full py-2 sm:py-3 px-3 sm:px-4 text-gray-700 leading-tight focus:outline-none focus:shadow-outline focus:border-soft-blue-400">
           <p v-if="errors.email" class="text-red-500 text-xs italic mt-1">{{ errors.email }}</p>
         </div>
-        <div class="mb-6">
-          <label for="password" class="block text-soft-blue-700 text-sm font-bold mb-2">密碼 <span class="text-red-500">*</span></label>
+        <div class="mb-5 sm:mb-6">
+          <label for="password" class="block text-soft-blue-700 text-sm sm:text-base font-bold mb-2">密碼 <span class="text-red-500">*</span></label>
           <input type="password" id="password" v-model="password" required
-            class="shadow appearance-none border border-soft-blue-300 rounded-xl w-full py-3 px-4 text-gray-700 mb-3 leading-tight focus:outline-none focus:shadow-outline focus:border-soft-blue-400">
+            class="shadow appearance-none border border-soft-blue-300 rounded-xl w-full py-2 sm:py-3 px-3 sm:px-4 text-gray-700 leading-tight focus:outline-none focus:shadow-outline focus:border-soft-blue-400">
           <p v-if="errors.password" class="text-red-500 text-xs italic mt-1">{{ errors.password }}</p>
         </div>
 
-        <div class="flex items-center justify-between mb-6">
-          <div class="flex items-center">
+        <div class="flex flex-col sm:flex-row items-center justify-between mb-5 sm:mb-6">
+          <div class="flex items-center mb-3 sm:mb-0">
             <input id="remember-me" type="checkbox" v-model="rememberMe" class="h-4 w-4 text-soft-blue-600 focus:ring-soft-blue-500 border-gray-300 rounded">
-            <label for="remember-me" class="ml-2 block text-sm text-soft-blue-700">
+            <label for="remember-me" class="ml-2 block text-sm sm:text-base text-soft-blue-700">
               記住我
             </label>
           </div>
-          <a href="#" class="text-sm text-soft-blue-600 hover:text-soft-blue-800 hover:underline">忘記密碼？</a>
+          <a href="#" class="text-sm sm:text-base text-soft-blue-600 hover:text-soft-blue-800 hover:underline">忘記密碼？</a>
         </div>
 
-        <p v-if="loginError" class="text-red-500 text-center text-sm mb-4">{{ loginError }}</p>
+        <p v-if="loginError" class="text-red-500 text-center text-sm mb-3 sm:mb-4">{{ loginError }}</p>
 
-        <button type="submit"
-          class="w-full bg-soft-blue-600 hover:bg-soft-blue-700 text-white font-bold py-3 px-4 rounded-xl focus:outline-none focus:shadow-outline transition duration-300">
-          登入
+        <button type="submit" :disabled="isLoading"
+          class="w-full bg-soft-blue-600 hover:bg-soft-blue-700 text-white font-bold py-2 sm:py-3 px-3 sm:px-4 rounded-xl focus:outline-none focus:shadow-outline transition duration-300 disabled:opacity-50 disabled:cursor-not-allowed">
+          {{ isLoading ? '登入中...' : '登入' }}
         </button>
       </form>
-      <p class="text-center text-soft-blue-600 text-sm mt-6">
+      <p class="text-center text-soft-blue-600 text-sm sm:text-base mt-5 sm:mt-6">
         還沒有帳號？
         <router-link to="/account/signup" class="text-soft-blue-700 hover:text-soft-blue-900 font-bold">點此註冊</router-link>
       </p>
@@ -44,14 +44,20 @@
 <script setup>
 import { ref } from 'vue';
 import { useRouter } from 'vue-router';
+import { useNotification } from '../../composables/useNotification';
+import { loadUsers } from '../../services/dataService'; // 引入 loadUsers
+import { useAuth } from '../../composables/useAuth'; // 引入 useAuth
 
 const email = ref('');
 const password = ref('');
 const rememberMe = ref(false);
 const errors = ref({});
-const loginError = ref(''); // 用於顯示登入失敗的通用錯誤訊息
+const loginError = ref('');
+const isLoading = ref(false);
 
 const router = useRouter();
+const { showSuccess, showError } = useNotification();
+const { login } = useAuth(); // 使用 useAuth
 
 function validateForm() {
   errors.value = {};
@@ -59,11 +65,14 @@ function validateForm() {
 
   if (!email.value) {
     errors.value.email = 'Email 為必填。';
+    showError('Email 為必填。');
   } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email.value)) {
     errors.value.email = '請輸入有效的 Email 格式。';
+    showError('請輸入有效的 Email 格式。');
   }
   if (!password.value) {
     errors.value.password = '密碼為必填。';
+    showError('密碼為必填。');
   }
 
   return Object.keys(errors.value).length === 0;
@@ -71,41 +80,52 @@ function validateForm() {
 
 async function handleSignIn() {
   if (!validateForm()) {
-    return; // 如果驗證失敗，停止提交
+    return;
   }
 
+  isLoading.value = true;
   try {
-    // 這裡模擬呼叫後端 API 進行登入驗證
     console.log('嘗試登入:', { email: email.value, password: password.value, rememberMe: rememberMe.value });
 
-    // 模擬 API 響應
-    // 實際應用中，這裡會發送 HTTP 請求到後端
-    const response = await new Promise(resolve => setTimeout(() => {
-      // 模擬成功登入
-      if (email.value === 'admin@example.com' && password.value === 'admin123') {
-        resolve({ success: true, role: 'admin' });
-      } else if (email.value === 'user@example.com' && password.value === 'user123') {
-        resolve({ success: true, role: 'customer' });
+    await new Promise(resolve => setTimeout(() => {
+      const users = loadUsers();
+      const foundUser = users.find(user => user.email === email.value && user.password === password.value);
+      if (foundUser) {
+        resolve({ success: true, user: foundUser });
       } else {
         resolve({ success: false, message: 'Email 或密碼不正確。' });
       }
-    }, 1000)); // 模擬網路延遲
+    }, 1000));
+
+    const response = await new Promise(resolve => setTimeout(() => {
+      const users = loadUsers();
+      const foundUser = users.find(user => user.email === email.value && user.password === password.value);
+      if (foundUser) {
+        resolve({ success: true, user: foundUser });
+      } else {
+        resolve({ success: false, message: 'Email 或密碼不正確。' });
+      }
+    }, 1000));
 
     if (response.success) {
-      // 登入成功，根據角色導向不同頁面
-      if (response.role === 'admin') {
-        router.push('/admin'); // 管理員導向後台儀表板
+      showSuccess('登入成功！');
+      login(response.user.id, response.user.role); // 使用 useAuth 的 login 方法
+
+      if (response.user.role === 'admin') {
+        router.push('/admin');
       } else {
-        router.push('/my-bookings'); // 客戶導向我的預約紀錄
+        router.push('/my-bookings');
       }
     } else {
-      // 登入失敗，顯示錯誤訊息
       loginError.value = response.message;
+      showError(response.message);
     }
 
   } catch (error) {
     console.error('登入過程中發生錯誤:', error);
-    loginError.value = '登入失敗，請稍後再試。'
+    showError('登入失敗，請稍後再試。');
+  } finally {
+    isLoading.value = false;
   }
 }
 </script>

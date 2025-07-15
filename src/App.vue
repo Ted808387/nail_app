@@ -1,6 +1,16 @@
 <template>
+  <Navbar />
   <router-view />
+  <Notification :message="notification.message" :type="notification.type" :duration="notification.duration" />
 </template>
+
+<script setup>
+import Navbar from './components/Navbar.vue';
+import Notification from './components/Notification.vue'; // 引入 Notification 組件
+import { useNotification } from './composables/useNotification'; // 引入 useNotification
+
+const notification = useNotification(); // 使用組合式函數
+</script>
 
 <style scoped>
 header {

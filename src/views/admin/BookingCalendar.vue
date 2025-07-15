@@ -27,25 +27,42 @@
         </button>
       </div>
 
-      <!-- 日曆主體 (簡化版) -->
+      <!-- 日曆主體 -->
       <div class="bg-soft-blue-100 p-6 rounded-xl min-h-[500px] border border-soft-blue-200 relative">
         <p class="text-soft-blue-600 text-xl text-center mb-4">
           {{ currentView === 'month' ? '月視圖' : currentView === 'week' ? '週視圖' : '日視圖' }}
         </p>
-        <div class="grid grid-cols-7 gap-2 text-center font-semibold text-soft-blue-700 mb-4">
+        <!-- 星期標頭 -->
+        <div :class="['grid gap-2 text-center font-semibold text-soft-blue-700 mb-4', currentView === 'day' ? 'hidden' : 'grid-cols-7']">
           <div>日</div><div>一</div><div>二</div><div>三</div><div>四</div><div>五</div><div>六</div>
         </div>
-        <div class="grid grid-cols-7 gap-2">
+        <!-- 日期網格 -->
+        <div :class="['grid gap-2', currentView === 'day' ? 'grid-cols-1 h-full' : 'grid-cols-7']">
           <div v-for="day in calendarDays" :key="day.date"
-            :class="['p-2 border rounded-md text-sm', day.isCurrentMonth ? 'bg-white text-soft-blue-800' : 'bg-gray-100 text-gray-500']">
-            <p class="font-bold mb-1">{{ day.dayOfMonth }}</p>
-            <div v-for="booking in day.bookings" :key="booking.id"
-              :class="['text-xs p-1 rounded-sm mb-1 cursor-pointer', getBookingStatusClass(booking.status)]"
-              @click="openBookingModal(booking)">
-              {{ booking.time }} - {{ booking.clientName }} ({{ booking.serviceName }})
+            :class="['p-2 border rounded-md text-sm',
+              day.isCurrentMonth ? 'bg-white text-soft-blue-800' : 'bg-gray-100 text-gray-500',
+              day.isCurrentMonth && !day.isBlocked ? 'cursor-pointer hover:bg-soft-blue-50' : '',
+              day.isToday ? 'border-soft-blue-600 ring-2 ring-soft-blue-600' : '',
+              currentView === 'day' ? 'col-span-full h-full text-base p-4 flex flex-col' : '',
+              currentView === 'week' ? 'min-h-32 flex flex-col' : '' // Apply specific styles for week view
+            ]"
+            @click="day.isCurrentMonth && !day.isBlocked && openBookingModal({ date: day.date })">
+            <p :class="['font-bold mb-1', currentView === 'day' ? 'text-2xl' : '']">{{ day.dayOfMonth }}</p>
+            <div v-if="currentView === 'day'" class="text-soft-blue-600 text-lg mb-4">
+              {{ new Date(day.date).toLocaleDateString('zh-TW', { weekday: 'long', month: 'long', day: 'numeric', year: 'numeric' }) }}
             </div>
-            <div v-if="day.isBlocked" class="text-xs p-1 rounded-sm bg-red-200 text-red-800">
-              不開放預約
+            <div :class="['flex-grow', currentView === 'day' ? 'space-y-2' : '', currentView === 'week' ? 'space-y-1 overflow-y-auto max-h-24' : '']">
+              <div v-for="booking in day.bookings" :key="booking.id"
+                :class="['text-xs p-1 rounded-sm mb-1 cursor-pointer', getBookingStatusClass(booking.status), currentView === 'day' ? 'text-sm p-2' : '']"
+                @click.stop="openBookingModal(booking)">
+                {{ booking.time }} - {{ booking.clientName }} ({{ booking.serviceName }})
+              </div>
+              <div v-if="day.isBlocked" :class="['text-xs p-1 rounded-sm bg-red-200 text-red-800', currentView === 'day' ? 'text-sm p-2' : '']">
+                不開放預約
+              </div>
+              <div v-if="currentView === 'day' && day.bookings.length === 0 && !day.isBlocked" class="text-soft-blue-500 text-center py-4">
+                本日無預約
+              </div>
             </div>
           </div>
         </div>
@@ -95,12 +112,13 @@
               <textarea id="notes" v-model="editingBooking.notes" rows="3"
                 class="shadow appearance-none border border-soft-blue-300 rounded-xl w-full py-3 px-4 text-gray-700 leading-tight focus:outline-none focus:shadow-outline focus:border-soft-blue-400"></textarea>
             </div>
-            <button type="submit" class="w-full bg-soft-blue-600 hover:bg-soft-blue-700 text-white font-bold py-3 px-4 rounded-xl focus:outline-none focus:shadow-outline transition duration-300">
-              {{ editingBooking.id ? '儲存變更' : '新增預約' }}
+            <button type="submit" :disabled="isLoading"
+              class="w-full bg-soft-blue-600 hover:bg-soft-blue-700 text-white font-bold py-3 px-4 rounded-xl focus:outline-none focus:shadow-outline transition duration-300 disabled:opacity-50 disabled:cursor-not-allowed">
+              {{ isLoading ? '儲存中...' : (editingBooking.id ? '儲存變更' : '新增預約') }}
             </button>
-            <button v-if="editingBooking.id" @click="deleteBooking(editingBooking.id)" type="button"
-              class="w-full mt-4 bg-red-500 hover:bg-red-600 text-white font-bold py-3 px-4 rounded-xl focus:outline-none focus:shadow-outline transition duration-300">
-              刪除預約
+            <button v-if="editingBooking.id" @click="deleteBooking(editingBooking.id)" type="button" :disabled="isLoading"
+              class="w-full mt-4 bg-red-500 hover:bg-red-600 text-white font-bold py-3 px-4 rounded-xl focus:outline-none focus:shadow-outline transition duration-300 disabled:opacity-50 disabled:cursor-not-allowed">
+              {{ isLoading ? '刪除中...' : '刪除預約' }}
             </button>
           </form>
         </div>
@@ -110,28 +128,44 @@
 </template>
 
 <script setup>
-import { ref, computed, watch } from 'vue';
+import { ref, computed, watch, onMounted } from 'vue';
+import { useNotification } from '../../composables/useNotification';
+import { saveBookings, loadBookings } from '../../services/dataService'; // 引入 dataService
 
 const currentView = ref('month'); // 'day', 'week', 'month'
 const currentDate = ref(new Date()); // 當前顯示的日期
 
 const isModalOpen = ref(false);
 const editingBooking = ref({}); // 用於新增或編輯的預約數據
+const isLoading = ref(false); // 新增載入狀態
 
-// 模擬預約數據 (實際應從後端獲取)
-const bookings = ref([
-  { id: 1, clientName: '王小明', serviceName: '手部光療', date: '2025-07-15', time: '10:00', status: 'confirmed', notes: '客戶偏好亮色系' },
-  { id: 2, clientName: '李美玲', serviceName: '日式嫁接睫毛', date: '2025-07-15', time: '14:00', status: 'pending', notes: '' },
-  { id: 3, clientName: '張大華', serviceName: '頭皮深層護理', date: '2025-07-16', time: '09:00', status: 'confirmed', notes: '首次體驗' },
-  { id: 4, clientName: '陳小花', serviceName: '美白保濕護膚', date: '2025-07-20', time: '11:30', status: 'confirmed', notes: '' },
-  { id: 5, clientName: '林大同', serviceName: '足部深層保養', date: '2025-07-22', time: '16:00', status: 'pending', notes: '需提早10分鐘到' },
-]);
+const bookings = ref([]); // 初始化為空陣列，將從 dataService 載入
 
 // 模擬不開放預約時段 (實際應從後端獲取)
 const blockedSlots = ref([
   { date: '2025-07-18', isBlocked: true, notes: '員工培訓' },
   { date: '2025-07-25', isBlocked: true, notes: '店休' },
 ]);
+
+const { showSuccess, showError } = useNotification(); // 使用通知組合式函數
+
+// 輔助函數：將 Date 物件格式化為 YYYY-MM-DD 字串 (本地日期)
+function formatDateToYYYYMMDD(date) {
+  const year = date.getFullYear();
+  const month = (date.getMonth() + 1).toString().padStart(2, '0'); // 月份是從 0 開始的
+  const day = date.getDate().toString().padStart(2, '0');
+  return `${year}-${month}-${day}`;
+}
+
+// 從 dataService 載入預約數據
+function loadBookingsData() {
+  bookings.value = loadBookings();
+}
+
+// 組件掛載時載入數據
+onMounted(() => {
+  loadBookingsData();
+});
 
 // 計算當前顯示的日期範圍標題
 const currentPeriod = computed(() => {
@@ -140,7 +174,7 @@ const currentPeriod = computed(() => {
     return currentDate.value.toLocaleDateString('zh-TW', options);
   } else if (currentView.value === 'week') {
     const startOfWeek = new Date(currentDate.value);
-    startOfWeek.setDate(currentDate.value.getDate() - currentDate.value.getDay()); // 設置為本週日
+    startOfWeek.setDate(currentDate.value.getDate() - startOfWeek.getDay()); // 設置為本週日
     const endOfWeek = new Date(startOfWeek);
     endOfWeek.setDate(startOfWeek.getDate() + 6);
     return `${startOfWeek.toLocaleDateString('zh-TW', { month: 'numeric', day: 'numeric' })} - ${endOfWeek.toLocaleDateString('zh-TW', { month: 'numeric', day: 'numeric', year: 'numeric' })}`;
@@ -149,32 +183,73 @@ const currentPeriod = computed(() => {
   }
 });
 
-// 生成日曆天數 (簡化版，僅月視圖)
+// 生成日曆天數
 const calendarDays = computed(() => {
-  const year = currentDate.value.getFullYear();
-  const month = currentDate.value.getMonth();
-  const firstDayOfMonth = new Date(year, month, 1);
-  const lastDayOfMonth = new Date(year, month + 1, 0);
   const days = [];
+  const today = new Date();
+  today.setHours(0, 0, 0, 0); // 正規化今天的日期，用於比較
 
-  // 填充上個月的空白
-  const startDay = firstDayOfMonth.getDay(); // 0 for Sunday, 1 for Monday...
-  for (let i = 0; i < startDay; i++) {
-    days.push({ date: '', dayOfMonth: '', isCurrentMonth: false, bookings: [], isBlocked: false });
-  }
+  if (currentView.value === 'month') {
+    const year = currentDate.value.getFullYear();
+    const month = currentDate.value.getMonth();
+    const firstDayOfMonth = new Date(year, month, 1);
+    const lastDayOfMonth = new Date(year, month + 1, 0);
 
-  // 填充本月天數
-  for (let i = 1; i <= lastDayOfMonth.getDate(); i++) {
-    const date = new Date(year, month, i);
-    const dateString = date.toISOString().split('T')[0];
+    // 填充上個月的空白
+    const startDay = firstDayOfMonth.getDay(); // 0 for Sunday, 1 for Monday...
+    for (let i = 0; i < startDay; i++) {
+      days.push({ date: '', dayOfMonth: '', isCurrentMonth: false, bookings: [], isBlocked: false, isToday: false });
+    }
+
+    // 填充本月天數
+    for (let i = 1; i <= lastDayOfMonth.getDate(); i++) {
+      const date = new Date(year, month, i);
+      const dateString = formatDateToYYYYMMDD(date);
+      const dayBookings = bookings.value.filter(b => b.date === dateString);
+      const isBlocked = blockedSlots.value.some(bs => bs.date === dateString && bs.isBlocked);
+      const isToday = date.getTime() === today.getTime();
+      days.push({
+        date: dateString,
+        dayOfMonth: i,
+        isCurrentMonth: true,
+        bookings: dayBookings,
+        isBlocked: isBlocked,
+        isToday: isToday
+      });
+    }
+  } else if (currentView.value === 'week') {
+    const startOfWeek = new Date(currentDate.value);
+    startOfWeek.setDate(currentDate.value.getDate() - startOfWeek.getDay()); // 設置為本週日
+
+    for (let i = 0; i < 7; i++) {
+      const date = new Date(startOfWeek);
+      date.setDate(startOfWeek.getDate() + i);
+      const dateString = formatDateToYYYYMMDD(date);
+      const dayBookings = bookings.value.filter(b => b.date === dateString);
+      const isBlocked = blockedSlots.value.some(bs => bs.date === dateString && bs.isBlocked);
+      const isToday = date.getTime() === today.getTime();
+      days.push({
+        date: dateString,
+        dayOfMonth: date.getDate(),
+        isCurrentMonth: true, // 週視圖中，所有天數都視為「當前」
+        bookings: dayBookings,
+        isBlocked: isBlocked,
+        isToday: isToday
+      });
+    }
+  } else { // day view
+    const date = new Date(currentDate.value);
+    const dateString = formatDateToYYYYMMDD(date);
     const dayBookings = bookings.value.filter(b => b.date === dateString);
     const isBlocked = blockedSlots.value.some(bs => bs.date === dateString && bs.isBlocked);
+    const isToday = date.getTime() === today.getTime();
     days.push({
       date: dateString,
-      dayOfMonth: i,
-      isCurrentMonth: true,
+      dayOfMonth: date.getDate(),
+      isCurrentMonth: true, // 日視圖中，永遠是「當前」
       bookings: dayBookings,
-      isBlocked: isBlocked
+      isBlocked: isBlocked,
+      isToday: isToday
     });
   }
   return days;
@@ -213,7 +288,8 @@ function navigateCalendar(direction) {
 function openBookingModal(booking = {}) {
   editingBooking.value = { ...booking }; // 複製一份，避免直接修改原始數據
   if (!editingBooking.value.date) {
-    editingBooking.value.date = currentDate.value.toISOString().split('T')[0]; // 預設為當前日期
+    // 如果沒有傳入日期，預設為當前日期
+    editingBooking.value.date = formatDateToYYYYMMDD(currentDate.value);
   }
   isModalOpen.value = true;
 }
@@ -225,33 +301,55 @@ function closeBookingModal() {
 }
 
 // 儲存預約
-function saveBooking() {
-  // 這裡應呼叫後端 API 儲存預約
+async function saveBooking() {
+  isLoading.value = true; // 開始載入
   console.log('儲存預約:', editingBooking.value);
-  if (editingBooking.value.id) {
-    // 編輯現有預約
-    const index = bookings.value.findIndex(b => b.id === editingBooking.value.id);
-    if (index !== -1) {
-      bookings.value[index] = { ...editingBooking.value };
-      alert('預約已更新！');
+  try {
+    // 模擬後端 API 呼叫
+    await new Promise(resolve => setTimeout(resolve, 800)); // 模擬網路延遲
+
+    if (editingBooking.value.id) {
+      // 編輯現有預約
+      const index = bookings.value.findIndex(b => b.id === editingBooking.value.id);
+      if (index !== -1) {
+        bookings.value[index] = { ...editingBooking.value };
+        showSuccess('預約已更新！'); // 替換為更友好的通知
+      }
+    } else {
+      // 新增預約
+      editingBooking.value.id = bookings.value.length > 0 ? Math.max(...bookings.value.map(b => b.id)) + 1 : 1;
+      bookings.value.push({ ...editingBooking.value });
+      showSuccess('預約已新增！'); // 替換為更友好的通知
     }
-  } else {
-    // 新增預約
-    editingBooking.value.id = bookings.value.length > 0 ? Math.max(...bookings.value.map(b => b.id)) + 1 : 1;
-    bookings.value.push({ ...editingBooking.value });
-    alert('預約已新增！');
+    saveBookings(bookings.value); // 保存數據
+    closeBookingModal();
+  } catch (error) {
+    console.error('儲存預約失敗:', error);
+    showError('儲存預約失敗，請稍後再試。'); // 替換為更友好的通知
+  } finally {
+    isLoading.value = false; // 結束載入
   }
-  closeBookingModal();
 }
 
 // 刪除預約
-function deleteBooking(id) {
+async function deleteBooking(id) {
   if (confirm('您確定要刪除此預約嗎？')) {
+    isLoading.value = true; // 開始載入
     console.log('刪除預約:', id);
-    // 這裡應呼叫後端 API 刪除預約
-    bookings.value = bookings.value.filter(b => b.id !== id);
-    alert('預約已刪除！');
-    closeBookingModal();
+    try {
+      // 模擬後端 API 呼叫
+      await new Promise(resolve => setTimeout(resolve, 800)); // 模擬網路延遲
+
+      bookings.value = bookings.value.filter(b => b.id !== id);
+      showSuccess('預約已刪除！'); // 替換為更友好的通知
+      saveBookings(bookings.value); // 保存數據
+      closeBookingModal();
+    } catch (error) {
+      console.error('刪除預約失敗:', error);
+      showError('刪除預約失敗，請稍後再試。'); // 替換為更友好的通知
+    } finally {
+      isLoading.value = false; // 結束載入
+    }
   }
 }
 
