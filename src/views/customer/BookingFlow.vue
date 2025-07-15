@@ -258,7 +258,7 @@ async function confirmBooking() {
     await new Promise(resolve => setTimeout(resolve, 1000)); // 模擬 API 成功響應，生成預約 ID
 
     bookingId.value = 'BOOK' + Math.random().toString(36).substr(2, 9).toUpperCase();
-    
+
     // 將新預約添加到 bookings 陣列並保存
     const newBooking = {
       id: bookings.value.length > 0 ? Math.max(...bookings.value.map(b => b.id)) + 1 : 1,

@@ -112,6 +112,7 @@
 <script setup>
 import { ref, onMounted } from 'vue';
 import { useRouter } from 'vue-router';
+import { loadBookings, loadClients, loadServices } from '../../services/dataService'; // 引入 dataService
 
 const router = useRouter();
 
@@ -126,26 +127,56 @@ const dashboardData = ref({
 
 // 模擬從後端獲取數據
 const fetchDashboardData = () => {
-  // 實際應用中，這裡會發送 HTTP 請求到後端 API
-  // 例如：axios.get('/api/admin/dashboard')
-  setTimeout(() => {
-    dashboardData.value = {
-      todayAppointments: 7,
-      weeklyRevenue: 35000,
-      newClientsMonth: 15,
-      pendingAppointments: 3,
-      popularServices: [
-        { name: '手部光療', count: 50 },
-        { name: '日式嫁接睫毛', count: 45 },
-        { name: '頭皮深層護理', count: 30 },
-      ],
-      recentPendingBookings: [
-        { id: 201, clientName: '王小明', serviceName: '美白保濕護膚', date: '2025-07-16', time: '10:00' },
-        { id: 202, clientName: '李美玲', serviceName: '足部深層保養', date: '2025-07-16', time: '15:30' },
-        { id: 203, clientName: '張大華', serviceName: '手部光療', date: '2025-07-17', time: '09:00' },
-      ],
-    };
-  }, 500);
+  const allBookings = loadBookings();
+  const allClients = loadClients();
+  const allServices = loadServices();
+
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+  const startOfWeek = new Date(today);
+  startOfWeek.setDate(today.getDate() - today.getDay()); // 本週日
+
+  // 今日預約數
+  dashboardData.value.todayAppointments = allBookings.filter(b => {
+    const bookingDate = new Date(b.date);
+    return bookingDate.toDateString() === today.toDateString() && b.status !== 'cancelled';
+  }).length;
+
+  // 本週預估收入
+  dashboardData.value.weeklyRevenue = allBookings.filter(b => {
+    const bookingDate = new Date(b.date);
+    return bookingDate >= startOfWeek && bookingDate <= today && b.status === 'confirmed';
+  }).reduce((sum, booking) => {
+    const service = allServices.find(s => s.name === booking.serviceName); // 假設 serviceName 匹配
+    return sum + (service ? service.price : 0);
+  }, 0);
+
+  // 本月新客戶
+  const startOfMonth = new Date(today.getFullYear(), today.getMonth(), 1);
+  dashboardData.value.newClientsMonth = allClients.filter(c => {
+    const regDate = new Date(c.registrationDate);
+    return regDate >= startOfMonth && regDate <= today; // 假設 registrationDate 存在
+  }).length;
+
+  // 待處理預約
+  dashboardData.value.pendingAppointments = allBookings.filter(b => b.status === 'pending').length;
+
+  // 最受歡迎服務 (簡化：只計算預約次數)
+  const serviceCounts = {};
+  allBookings.forEach(b => {
+    if (b.serviceName) {
+      serviceCounts[b.serviceName] = (serviceCounts[b.serviceName] || 0) + 1;
+    }
+  });
+  dashboardData.value.popularServices = Object.keys(serviceCounts)
+    .map(name => ({ name, count: serviceCounts[name] }))
+    .sort((a, b) => b.count - a.count)
+    .slice(0, 3); // 只顯示前3名
+
+  // 近期待處理預約
+  dashboardData.value.recentPendingBookings = allBookings.filter(b => b.status === 'pending')
+    .sort((a, b) => new Date(a.date) - new Date(b.date))
+    .slice(0, 5); // 只顯示最近5筆
 };
 
 onMounted(() => {

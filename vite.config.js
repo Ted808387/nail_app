@@ -15,4 +15,9 @@ export default defineConfig({
       '@': fileURLToPath(new URL('./src', import.meta.url))
     },
   },
+  // 添加 Vitest 配置
+  test: {
+    globals: true, // 讓測試 API (describe, it, expect) 全局可用
+    environment: 'jsdom', // 模擬瀏覽器環境
+  },
 })

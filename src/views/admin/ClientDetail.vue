@@ -45,6 +45,7 @@
 import { ref, onMounted } from 'vue';
 import { useRoute } from 'vue-router';
 import { useNotification } from '../../composables/useNotification';
+import { loadClients, saveClients } from '../../services/dataService'; // 引入 dataService
 
 const route = useRoute();
 const { showSuccess, showError } = useNotification();
@@ -52,14 +53,6 @@ const { showSuccess, showError } = useNotification();
 const client = ref(null);
 const editableClient = ref({});
 const isLoading = ref(false);
-
-// 模擬客戶數據庫
-const mockClients = [
-  { id: 1, name: '陳小姐', email: 'chen@email.com', phone: '0911111111', registrationDate: '2023-01-15', totalBookings: 5, lastBookingDate: '2024-06-20' },
-  { id: 2, name: '林先生', email: 'lin@email.com', phone: '0922222222', registrationDate: '2023-03-01', totalBookings: 12, lastBookingDate: '2024-07-10' },
-  { id: 3, name: '王小姐', email: 'wang@email.com', phone: '0933333333', registrationDate: '2023-05-20', totalBookings: 8, lastBookingDate: '2024-07-01' },
-  { id: 4, name: '張先生', email: 'zhang@email.com', phone: '0944444444', registrationDate: '2023-07-01', totalBookings: 3, lastBookingDate: '2024-05-15' },
-];
 
 onMounted(async () => {
   const clientId = parseInt(route.params.id);
@@ -70,9 +63,9 @@ onMounted(async () => {
 
   isLoading.value = true;
   try {
-    // 模擬從後端獲取客戶數據
-    await new Promise(resolve => setTimeout(resolve, 1000));
-    const foundClient = mockClients.find(c => c.id === clientId);
+    // 從 dataService 載入所有客戶數據
+    const allClients = loadClients();
+    const foundClient = allClients.find(c => c.id === clientId);
     if (foundClient) {
       client.value = { ...foundClient };
       editableClient.value = { ...foundClient }; // 複製一份用於編輯
@@ -93,9 +86,18 @@ async function updateClientDetails() {
   try {
     // 模擬呼叫後端 API 更新客戶數據
     await new Promise(resolve => setTimeout(resolve, 1000));
-    // 更新本地數據
-    Object.assign(client.value, editableClient.value);
-    showSuccess('客戶資料已成功更新！');
+    
+    // 更新 dataService 中的客戶數據
+    const allClients = loadClients();
+    const index = allClients.findIndex(c => c.id === editableClient.value.id);
+    if (index !== -1) {
+      allClients[index] = { ...editableClient.value };
+      saveClients(allClients); // 保存更新後的客戶列表
+      Object.assign(client.value, editableClient.value); // 更新顯示的客戶數據
+      showSuccess('客戶資料已成功更新！');
+    } else {
+      showError('更新失敗，找不到該客戶。');
+    }
   } catch (error) {
     console.error('更新客戶詳情失敗:', error);
     showError('更新客戶詳情失敗，請稍後再試。');
