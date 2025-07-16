@@ -112,14 +112,15 @@ const router = createRouter({
 })
 
 // 全局導航守衛
-router.beforeEach((to, from, next) => {
-  const isLoggedIn = localStorage.getItem('currentUserId') !== null;
-  const currentUserRole = localStorage.getItem('currentUserRole');
+import { useAuth } from '../composables/useAuth';
 
-  if (to.meta.requiresAuth && !isLoggedIn) {
+router.beforeEach((to, from, next) => {
+  const { isLoggedIn, isAdmin } = useAuth();
+
+  if (to.meta.requiresAuth && !isLoggedIn.value) {
     // 如果需要登入但未登入，導向登入頁
     next('/account/signin');
-  } else if (to.meta.requiresAdmin && currentUserRole !== 'admin') {
+  } else if (to.meta.requiresAdmin && !isAdmin.value) {
     // 如果需要管理員權限但不是管理員，導向首頁或客戶預約頁
     next('/'); // 或者 next('/my-bookings');
   } else {
