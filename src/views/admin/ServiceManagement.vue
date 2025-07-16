@@ -8,6 +8,21 @@
           class="px-5 py-2 bg-soft-blue-600 text-white rounded-full shadow-md hover:bg-soft-blue-700 transition duration-300 text-base sm:text-lg">
           新增服務項目
         </button>
+        <div class="flex flex-col sm:flex-row gap-4">
+          <select v-model="filterCategory" class="border border-soft-blue-300 rounded-xl py-2 px-3 text-sm">
+            <option value="">所有類別</option>
+            <option value="手部護理">手部護理</option>
+            <option value="美睫">美睫</option>
+            <option value="頭皮護理">頭皮護理</option>
+            <option value="臉部護理">臉部護理</option>
+            <option value="足部護理">足部護理</option>
+          </select>
+          <select v-model="filterStatus" class="border border-soft-blue-300 rounded-xl py-2 px-3 text-sm">
+            <option value="">所有狀態</option>
+            <option value="true">上架中</option>
+            <option value="false">已下架</option>
+          </select>
+        </div>
         <div class="flex flex-wrap justify-center sm:justify-end gap-2">
           <button @click="bulkAction('activate')" :disabled="selectedServices.length === 0 || isLoading"
             class="px-3 py-1 bg-green-500 text-white rounded-full text-xs sm:text-sm hover:bg-green-600 transition duration-300 disabled:opacity-50 disabled:cursor-not-allowed">
@@ -41,7 +56,7 @@
             </tr>
           </thead>
           <tbody>
-            <tr v-for="service in services" :key="service.id" class="border-b border-soft-blue-100 last:border-b-0 hover:bg-soft-blue-50">
+            <tr v-for="service in filteredServices" :key="service.id" class="border-b border-soft-blue-100 last:border-b-0 hover:bg-soft-blue-50">
               <td class="py-2 sm:py-3 px-3 sm:px-4">
                 <input type="checkbox" v-model="selectedServices" :value="service.id">
               </td>
@@ -166,6 +181,8 @@ const currentService = ref({});
 const selectedServices = ref([]); // 用於批量操作
 const isLoading = ref(false); // 新增載入狀態
 const imageInput = ref(null); // 用於圖片檔案輸入的引用
+const filterCategory = ref(''); // 新增：類別篩選
+const filterStatus = ref(''); // 新增：狀態篩選
 
 const { showSuccess, showError } = useNotification(); // 使用通知組合式函數
 
@@ -177,6 +194,14 @@ onMounted(async () => {
     console.error('載入服務失敗:', error);
     showError('載入服務失敗，請稍後再試。');
   }
+});
+
+const filteredServices = computed(() => {
+  return services.value.filter(service => {
+    const categoryMatch = !filterCategory.value || service.category === filterCategory.value;
+    const statusMatch = filterStatus.value === '' || String(service.isActive) === filterStatus.value;
+    return categoryMatch && statusMatch;
+  });
 });
 
 const isAllSelected = computed(() => {
