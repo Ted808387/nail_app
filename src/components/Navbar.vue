@@ -36,7 +36,6 @@
           </template>
           <template v-else>
             <router-link v-if="isAdmin" to="/admin" class="text-white hover:text-soft-blue-200 transition duration-300" @click="isOpen = false">管理員儀表板</router-link>
-            <router-link v-if="isAdmin" to="/admin/settings" class="text-white hover:text-soft-blue-200 transition duration-300" @click="isOpen = false">營業設定</router-link>
             <router-link to="/my-bookings" class="text-white hover:text-soft-blue-200 transition duration-300" @click="isOpen = false">我的預約</router-link>
             <router-link to="/account/settings" class="text-white hover:text-soft-blue-200 transition duration-300" @click="isOpen = false">帳號設定</router-link>
             <button @click="handleLogout" class="px-4 py-2 bg-red-500 text-white rounded-full hover:bg-red-600 transition duration-300">登出</button>

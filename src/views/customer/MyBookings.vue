@@ -58,15 +58,15 @@
           <p><strong>總時長：</strong> {{ selectedBooking.totalDuration }} 分鐘</p>
           <p><strong>備註：</strong>
             <span v-if="!isEditing">{{ selectedBooking.notes || '無' }}</span>
-            <textarea v-else v-model="selectedBooking.notes" rows="3" class="p-2 border rounded-md w-full mt-1 text-sm sm:text-base" placeholder="請輸入備註"></textarea>
+            <textarea v-else v-model="selectedBooking.notes" rows="3" class="p-2 border rounded-md w-full mt-1 text-sm sm:text-base" placeholder="請輸入備註" :disabled="!isAdmin"></textarea>
           </p>
         </div>
         <div class="mt-6 sm:mt-8 flex flex-col sm:flex-row justify-end space-y-3 sm:space-y-0 sm:space-x-4">
-          <button v-if="!isEditing" @click="startEditing" :disabled="isLoading"
+          <button v-if="!isEditing && isAdmin" @click="startEditing" :disabled="isLoading"
             class="px-5 py-2 bg-blue-500 text-white rounded-full shadow-md hover:bg-blue-600 transition duration-300 disabled:opacity-50 disabled:cursor-not-allowed">
             編輯
           </button>
-          <template v-else>
+          <template v-else-if="isEditing && isAdmin">
             <button @click="saveChanges" :disabled="isLoading"
               class="px-5 py-2 bg-green-500 text-white rounded-full shadow-md hover:bg-green-600 transition duration-300 disabled:opacity-50 disabled:cursor-not-allowed">
               {{ isLoading ? '儲存中...' : '儲存' }}
@@ -94,6 +94,9 @@
 import { ref, computed, onMounted } from 'vue';
 import { useNotification } from '../../composables/useNotification';
 import { fetchBookings, saveBooking } from '../../api'; // 引入 API 函數
+import { useAuth } from '../../composables/useAuth'; // 引入 useAuth
+
+const { isAdmin } = useAuth(); // 使用 useAuth
 
 const bookings = ref([]); // 初始化為空陣列
 const isLoading = ref(false); // 新增載入狀態

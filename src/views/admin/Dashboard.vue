@@ -36,6 +36,14 @@
         class="px-5 py-2 bg-soft-blue-600 text-white rounded-full shadow-md hover:bg-soft-blue-700 transition duration-300 text-base sm:text-lg font-semibold text-center">
         管理服務項目
       </router-link>
+      <router-link to="/admin/clients"
+        class="px-5 py-2 bg-soft-blue-600 text-white rounded-full shadow-md hover:bg-soft-blue-700 transition duration-300 text-base sm:text-lg font-semibold text-center">
+        客戶管理
+      </router-link>
+      <router-link to="/admin/settings"
+        class="px-5 py-2 bg-soft-blue-600 text-white rounded-full shadow-md hover:bg-soft-blue-700 transition duration-300 text-base sm:text-lg font-semibold text-center">
+        營業設定
+      </router-link>
     </div>
 
     <!-- 數據可視化區塊 -->
