@@ -131,6 +131,7 @@
 import { ref, computed, watch, onMounted } from 'vue';
 import { useNotification } from '../../composables/useNotification';
 import { saveBookings, loadBookings } from '../../services/dataService'; // 引入 dataService
+import { fetchBusinessSettings } from '../../api'; // 引入 fetchBusinessSettings
 
 const currentView = ref('month'); // 'day', 'week', 'month'
 const currentDate = ref(new Date()); // 當前顯示的日期
@@ -140,12 +141,10 @@ const editingBooking = ref({}); // 用於新增或編輯的預約數據
 const isLoading = ref(false); // 新增載入狀態
 
 const bookings = ref([]); // 初始化為空陣列，將從 dataService 載入
-
-// 模擬不開放預約時段 (實際應從後端獲取)
-const blockedSlots = ref([
-  { date: '2025-07-18', isBlocked: true, notes: '員工培訓' },
-  { date: '2025-07-25', isBlocked: true, notes: '店休' },
-]);
+const businessHours = ref([]);
+const holidays = ref([]);
+const unavailableDates = ref([]);
+const bookableTimeSlots = ref([]);
 
 const { showSuccess, showError } = useNotification(); // 使用通知組合式函數
 
@@ -163,8 +162,18 @@ function loadBookingsData() {
 }
 
 // 組件掛載時載入數據
-onMounted(() => {
+onMounted(async () => {
   loadBookingsData();
+  try {
+    const settings = await fetchBusinessSettings();
+    businessHours.value = settings.businessHours;
+    holidays.value = settings.holidays;
+    unavailableDates.value = settings.unavailableDates;
+    bookableTimeSlots.value = settings.bookableTimeSlots;
+  } catch (error) {
+    console.error('載入營業設定失敗:', error);
+    showError('載入營業設定失敗，請稍後再試。');
+  }
 });
 
 // 計算當前顯示的日期範圍標題
@@ -206,7 +215,13 @@ const calendarDays = computed(() => {
       const date = new Date(year, month, i);
       const dateString = formatDateToYYYYMMDD(date);
       const dayBookings = bookings.value.filter(b => b.date === dateString);
-      const isBlocked = blockedSlots.value.some(bs => bs.date === dateString && bs.isBlocked);
+      const isHoliday = holidays.value.includes(dateString);
+      const isUnavailable = unavailableDates.value.includes(dateString);
+      const dayOfWeek = date.getDay(); // 0 for Sunday, 1 for Monday, etc.
+      const businessDay = businessHours.value.find(d => d.id === (dayOfWeek === 0 ? 7 : dayOfWeek));
+      const isClosedDay = businessDay ? businessDay.isClosed : true; // 如果沒有設定，預設為關閉
+
+      const isBlocked = isHoliday || isUnavailable || isClosedDay;
       const isToday = date.getTime() === today.getTime();
       days.push({
         date: dateString,
@@ -226,7 +241,13 @@ const calendarDays = computed(() => {
       date.setDate(startOfWeek.getDate() + i);
       const dateString = formatDateToYYYYMMDD(date);
       const dayBookings = bookings.value.filter(b => b.date === dateString);
-      const isBlocked = blockedSlots.value.some(bs => bs.date === dateString && bs.isBlocked);
+      const isHoliday = holidays.value.includes(dateString);
+      const isUnavailable = unavailableDates.value.includes(dateString);
+      const dayOfWeek = date.getDay(); // 0 for Sunday, 1 for Monday, etc.
+      const businessDay = businessHours.value.find(d => d.id === (dayOfWeek === 0 ? 7 : dayOfWeek));
+      const isClosedDay = businessDay ? businessDay.isClosed : true; // 如果沒有設定，預設為關閉
+
+      const isBlocked = isHoliday || isUnavailable || isClosedDay;
       const isToday = date.getTime() === today.getTime();
       days.push({
         date: dateString,
@@ -241,7 +262,13 @@ const calendarDays = computed(() => {
     const date = new Date(currentDate.value);
     const dateString = formatDateToYYYYMMDD(date);
     const dayBookings = bookings.value.filter(b => b.date === dateString);
-    const isBlocked = blockedSlots.value.some(bs => bs.date === dateString && bs.isBlocked);
+    const isHoliday = holidays.value.includes(dateString);
+    const isUnavailable = unavailableDates.value.includes(dateString);
+    const dayOfWeek = date.getDay(); // 0 for Sunday, 1 for Monday, etc.
+    const businessDay = businessHours.value.find(d => d.id === (dayOfWeek === 0 ? 7 : dayOfWeek));
+    const isClosedDay = businessDay ? businessDay.isClosed : true; // 如果沒有設定，預設為關閉
+
+    const isBlocked = isHoliday || isUnavailable || isClosedDay;
     const isToday = date.getTime() === today.getTime();
     days.push({
       date: dateString,

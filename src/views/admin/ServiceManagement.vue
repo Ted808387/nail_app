@@ -35,7 +35,7 @@
               <th class="py-2 sm:py-3 px-3 sm:px-4 text-left text-soft-blue-800 font-semibold text-xs sm:text-sm">服務名稱</th>
               <th class="py-2 sm:py-3 px-3 sm:px-4 text-left text-soft-blue-800 font-semibold text-xs sm:text-sm">類別</th>
               <th class="py-2 sm:py-3 px-3 sm:px-4 text-left text-soft-blue-800 font-semibold text-xs sm:text-sm">價格</th>
-              <th class="py-2 sm:py-3 px-3 sm:px-4 text-left text-soft-blue-800 font-semibold text-xs sm:text-sm">時長 (分)</th>
+              <th class="py-2 sm:py-3 px-3 sm:px-4 text-left text-soft-blue-800 font-semibold text-xs sm:text-sm">時長範圍 (分)</th>
               <th class="py-2 sm:py-3 px-3 sm:px-4 text-left text-soft-blue-800 font-semibold text-xs sm:text-sm">狀態</th>
               <th class="py-2 sm:py-3 px-3 sm:px-4 text-left text-soft-blue-800 font-semibold text-xs sm:text-sm">操作</th>
             </tr>
@@ -52,7 +52,7 @@
               <td class="py-2 sm:py-3 px-3 sm:px-4 text-soft-blue-700 text-xs sm:text-sm">{{ service.name }}</td>
               <td class="py-2 sm:py-3 px-3 sm:px-4 text-soft-blue-700 text-xs sm:text-sm">{{ service.category }}</td>
               <td class="py-2 sm:py-3 px-3 sm:px-4 text-soft-blue-700 text-xs sm:text-sm">NT$ {{ service.price }}</td>
-              <td class="py-2 sm:py-3 px-3 sm:px-4 text-soft-blue-700 text-xs sm:text-sm">{{ service.duration }}</td>
+              <td class="py-2 sm:py-3 px-3 sm:px-4 text-soft-blue-700 text-xs sm:text-sm">{{ service.minDuration }} - {{ service.maxDuration }}</td>
               <td class="py-2 sm:py-3 px-3 sm:px-4">
                 <span :class="[service.isActive ? 'bg-green-200 text-green-800' : 'bg-red-200 text-red-800']"
                   class="px-2 py-0.5 rounded-full text-xs font-medium">
@@ -111,10 +111,17 @@
               <input type="number" id="service-price" v-model="currentService.price" placeholder="價格" required
                 class="shadow appearance-none border border-soft-blue-300 rounded-xl w-full py-2 sm:py-3 px-3 sm:px-4 text-gray-700 leading-tight focus:outline-none focus:shadow-outline focus:border-soft-blue-400">
             </div>
-            <div class="mb-3 sm:mb-4">
-              <label for="service-duration" class="block text-soft-blue-700 text-sm sm:text-base font-bold mb-2">時長 (分鐘) <span class="text-red-500">*</span></label>
-              <input type="number" id="service-duration" v-model="currentService.duration" placeholder="所需時間" required
-                class="shadow appearance-none border border-soft-blue-300 rounded-xl w-full py-2 sm:py-3 px-3 sm:px-4 text-gray-700 leading-tight focus:outline-none focus:shadow-outline focus:border-soft-blue-400">
+            <div class="mb-3 sm:mb-4 flex space-x-4">
+              <div class="flex-1">
+                <label for="service-min-duration" class="block text-soft-blue-700 text-sm sm:text-base font-bold mb-2">最短時長 (分鐘) <span class="text-red-500">*</span></label>
+                <input type="number" id="service-min-duration" v-model="currentService.minDuration" placeholder="最短時長" required
+                  class="shadow appearance-none border border-soft-blue-300 rounded-xl w-full py-2 sm:py-3 px-3 sm:px-4 text-gray-700 leading-tight focus:outline-none focus:shadow-outline focus:border-soft-blue-400">
+              </div>
+              <div class="flex-1">
+                <label for="service-max-duration" class="block text-soft-blue-700 text-sm sm:text-base font-bold mb-2">最長時長 (分鐘) <span class="text-red-500">*</span></label>
+                <input type="number" id="service-max-duration" v-model="currentService.maxDuration" placeholder="最長時長" required
+                  class="shadow appearance-none border border-soft-blue-300 rounded-xl w-full py-2 sm:py-3 px-3 sm:px-4 text-gray-700 leading-tight focus:outline-none focus:shadow-outline focus:border-soft-blue-400">
+              </div>
             </div>
             <div class="mb-5 sm:mb-6">
               <label for="service-image" class="block text-soft-blue-700 text-sm sm:text-base font-bold mb-2">圖片 URL</label>
@@ -176,7 +183,7 @@ function toggleSelectAll() {
 }
 
 function showModal(service) {
-  currentService.value = service ? { ...service } : { id: null, name: '', description: '', price: null, duration: null, category: '', isActive: true, imageUrl: '' };
+  currentService.value = service ? { ...service } : { id: null, name: '', description: '', price: null, minDuration: null, maxDuration: null, category: '', isActive: true, imageUrl: '' };
   isModalOpen.value = true;
 }
 
@@ -186,8 +193,13 @@ function closeModal() {
 }
 
 async function saveService() { // 本地函數
-  if (!currentService.value.name || !currentService.value.price || !currentService.value.duration) {
-    showError('請填寫服務名稱、價格和時長。');
+  if (!currentService.value.name || !currentService.value.price || currentService.value.minDuration === null || currentService.value.maxDuration === null) {
+    showError('請填寫服務名稱、價格、最短時長和最長時長。');
+    return;
+  }
+
+  if (currentService.value.minDuration > currentService.value.maxDuration) {
+    showError('最短時長不能大於最長時長。');
     return;
   }
 

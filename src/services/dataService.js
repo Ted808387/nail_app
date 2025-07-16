@@ -3,11 +3,11 @@
 // --- 預約數據 ---
 const BOOKINGS_STORAGE_KEY = 'bookings';
 const initialBookings = [
-  { id: 1, clientName: '王小明', serviceName: '手部光療', date: '2025-07-15', time: '10:00', status: 'confirmed', notes: '客戶偏好亮色系' },
-  { id: 2, clientName: '李美玲', serviceName: '日式嫁接睫毛', date: '2025-07-15', time: '14:00', status: 'pending', notes: '' },
-  { id: 3, clientName: '張大華', serviceName: '頭皮深層護理', date: '2025-07-16', time: '09:00', status: 'confirmed', notes: '首次體驗' },
-  { id: 4, clientName: '陳小花', serviceName: '美白保濕護膚', date: '2025-07-20', time: '11:30', status: 'confirmed', notes: '' },
-  { id: 5, clientName: '林大同', serviceName: '足部深層保養', date: '2025-07-22', time: '16:00', status: 'pending', notes: '需提早10分鐘到' },
+  { id: 1, clientName: '王小明', serviceName: '手部光療', date: '2025-07-15', time: '10:00', status: 'confirmed', notes: '客戶偏好亮色系', totalDuration: 120 },
+  { id: 2, clientName: '李美玲', serviceName: '日式嫁接睫毛', date: '2025-07-15', time: '14:00', status: 'pending', notes: '', totalDuration: 150 },
+  { id: 3, clientName: '張大華', serviceName: '頭皮深層護理', date: '2025-07-16', time: '09:00', status: 'confirmed', notes: '首次體驗', totalDuration: 90 },
+  { id: 4, clientName: '陳小花', serviceName: '美白保濕護膚', date: '2025-07-20', time: '11:30', status: 'confirmed', notes: '', totalDuration: 120 },
+  { id: 5, clientName: '林大同', serviceName: '足部深層保養', date: '2025-07-22', time: '16:00', status: 'pending', notes: '需提早10分鐘到', totalDuration: 90 },
 ];
 
 export function saveBookings(bookings) {
@@ -22,12 +22,12 @@ export function loadBookings() {
 // --- 服務數據 ---
 const SERVICES_STORAGE_KEY = 'services';
 const initialServices = [
-  { id: 1, name: '手部光療', description: '專業細緻的手部光療服務，包含基礎保養與多樣款式選擇。', price: 1200, duration: 90, category: '手部護理', isActive: true, imageUrl: 'https://via.placeholder.com/100?text=Hand+Gel' },
-  { id: 2, name: '日式嫁接睫毛', description: '自然濃密的日式睫毛嫁接，採用輕柔手法，讓雙眼更有神。', price: 1800, duration: 120, category: '美睫', isActive: true, imageUrl: 'https://via.placeholder.com/100?text=Eyelash' },
-  { id: 3, name: '頭皮深層護理', description: '深層清潔與滋養頭皮，改善髮質問題，讓您的頭皮重獲健康活力。', price: 900, duration: 60, category: '頭皮護理', isActive: false, imageUrl: 'https://via.placeholder.com/100?text=Scalp' },
-  { id: 4, name: '美白保濕護膚', description: '針對肌膚暗沉與乾燥問題，提供深層美白與保濕護理。', price: 1500, duration: 90, category: '臉部護理', isActive: true, imageUrl: 'https://via.placeholder.com/100?text=Facial' },
-  { id: 5, name: '足部深層保養', description: '專業足部去角質、修剪與滋潤，讓雙足恢復柔嫩。', price: 1000, duration: 60, category: '足部護理', isActive: true, imageUrl: 'https://via.placeholder.com/100?text=Foot' },
-  { id: 6, name: '法式指甲', description: '經典法式指甲，簡約優雅，適合各種場合。', price: 800, duration: 75, category: '手部護理', isActive: true, imageUrl: 'https://via.placeholder.com/100?text=French+Nails' },
+  { id: 1, name: '手部光療', description: '專業細緻的手部光療服務，包含基礎保養與多樣款式選擇。', price: 1200, minDuration: 90, maxDuration: 120, category: '手部護理', isActive: true, imageUrl: 'https://via.placeholder.com/100?text=Hand+Gel' },
+  { id: 2, name: '日式嫁接睫毛', description: '自然濃密的日式睫毛嫁接，採用輕柔手法，讓雙眼更有神。', price: 1800, minDuration: 120, maxDuration: 150, category: '美睫', isActive: true, imageUrl: 'https://via.placeholder.com/100?text=Eyelash' },
+  { id: 3, name: '頭皮深層護理', description: '深層清潔與滋養頭皮，改善髮質問題，讓您的頭皮重獲健康活力。', price: 900, minDuration: 60, maxDuration: 90, category: '頭皮護理', isActive: false, imageUrl: 'https://via.placeholder.com/100?text=Scalp' },
+  { id: 4, name: '美白保濕護膚', description: '針對肌膚暗沉與乾燥問題，提供深層美白與保濕護理。', price: 1500, minDuration: 90, maxDuration: 120, category: '臉部護理', isActive: true, imageUrl: 'https://via.placeholder.com/100?text=Facial' },
+  { id: 5, name: '足部深層保養', description: '專業足部去角質、修剪與滋潤，讓雙足恢復柔嫩。', price: 1000, minDuration: 60, maxDuration: 90, category: '足部護理', isActive: true, imageUrl: 'https://via.placeholder.com/100?text=Foot' },
+  { id: 6, name: '法式指甲', description: '經典法式指甲，簡約優雅，適合各種場合。', price: 800, minDuration: 75, maxDuration: 90, category: '手部護理', isActive: true, imageUrl: 'https://via.placeholder.com/100?text=French+Nails' },
 ];
 
 export function saveServices(services) {
@@ -60,6 +60,8 @@ export function loadClients() {
 // --- 營業設定數據 ---
 const BUSINESS_SETTINGS_STORAGE_KEY = 'businessHours';
 const HOLIDAYS_STORAGE_KEY = 'holidays';
+const UNAVAILABLE_DATES_STORAGE_KEY = 'unavailableDates';
+const BOOKABLE_TIME_SLOTS_STORAGE_KEY = 'bookableTimeSlots';
 
 const initialBusinessHours = [
   { id: 1, name: '星期一', open: '10:00', close: '19:00', isClosed: false },
@@ -76,13 +78,27 @@ const initialHolidays = [
   '2025-02-08', // 農曆新年
 ];
 
+const initialUnavailableDates = [
+  '2025-07-25', // 範例：特定日期不可預約
+];
+
+const initialBookableTimeSlots = [
+  { start: '09:00', end: '12:00' },
+  { start: '13:00', end: '17:00' },
+];
+
 export function saveBusinessHours(hours) {
   localStorage.setItem(BUSINESS_SETTINGS_STORAGE_KEY, JSON.stringify(hours));
 }
 
 export function loadBusinessHours() {
   const storedHours = localStorage.getItem(BUSINESS_SETTINGS_STORAGE_KEY);
-  return storedHours ? JSON.parse(storedHours) : initialBusinessHours;
+  if (storedHours) {
+    return JSON.parse(storedHours);
+  } else {
+    localStorage.setItem(BUSINESS_SETTINGS_STORAGE_KEY, JSON.stringify(initialBusinessHours));
+    return initialBusinessHours;
+  }
 }
 
 export function saveHolidays(holidays) {
@@ -91,7 +107,40 @@ export function saveHolidays(holidays) {
 
 export function loadHolidays() {
   const storedHolidays = localStorage.getItem(HOLIDAYS_STORAGE_KEY);
-  return storedHolidays ? JSON.parse(storedHolidays) : initialHolidays;
+  if (storedHolidays) {
+    return JSON.parse(storedHolidays);
+  } else {
+    localStorage.setItem(HOLIDAYS_STORAGE_KEY, JSON.stringify(initialHolidays));
+    return initialHolidays;
+  }
+}
+
+export function saveUnavailableDates(dates) {
+  localStorage.setItem(UNAVAILABLE_DATES_STORAGE_KEY, JSON.stringify(dates));
+}
+
+export function loadUnavailableDates() {
+  const storedDates = localStorage.getItem(UNAVAILABLE_DATES_STORAGE_KEY);
+  if (storedDates) {
+    return JSON.parse(storedDates);
+  } else {
+    localStorage.setItem(UNAVAILABLE_DATES_STORAGE_KEY, JSON.stringify(initialUnavailableDates));
+    return initialUnavailableDates;
+  }
+}
+
+export function saveBookableTimeSlots(slots) {
+  localStorage.setItem(BOOKABLE_TIME_SLOTS_STORAGE_KEY, JSON.stringify(slots));
+}
+
+export function loadBookableTimeSlots() {
+  const storedSlots = localStorage.getItem(BOOKABLE_TIME_SLOTS_STORAGE_KEY);
+  if (storedSlots) {
+    return JSON.parse(storedSlots);
+  } else {
+    localStorage.setItem(BOOKABLE_TIME_SLOTS_STORAGE_KEY, JSON.stringify(initialBookableTimeSlots));
+    return initialBookableTimeSlots;
+  }
 }
 
 // --- 用戶數據 ---

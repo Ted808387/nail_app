@@ -23,7 +23,23 @@ export const saveBooking = async (booking) => {
     }
   } else {
     // Add new booking
-    booking.id = bookings.length > 0 ? Math.max(...bookings.map(b => b.id)) + 1 : 1;
+    // Helper to generate a random alphanumeric string
+    const generateRandomAlphanumeric = (length) => {
+      const characters = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
+      let result = '';
+      for (let i = 0; i < length; i++) {
+        result += characters.charAt(Math.floor(Math.random() * characters.length));
+      }
+      return result;
+    };
+
+    let newId;
+    let isUnique = false;
+    while (!isUnique) {
+      newId = 'BOOK' + generateRandomAlphanumeric(6); // BOOK + 6 random chars
+      isUnique = !bookings.some(b => b.id === newId);
+    }
+    booking.id = newId;
     bookings.push(booking);
   }
   dataService.saveBookings(bookings);
@@ -51,6 +67,10 @@ export const fetchServices = async () => {
 export const saveService = async (service) => {
   await simulateDelay();
   const services = dataService.loadServices();
+  // Ensure minDuration and maxDuration are numbers
+  service.minDuration = Number(service.minDuration);
+  service.maxDuration = Number(service.maxDuration);
+
   if (service.id) {
     const index = services.findIndex(s => s.id === service.id);
     if (index !== -1) {
@@ -150,6 +170,8 @@ export const fetchBusinessSettings = async () => {
   return {
     businessHours: dataService.loadBusinessHours(),
     holidays: dataService.loadHolidays(),
+    unavailableDates: dataService.loadUnavailableDates(),
+    bookableTimeSlots: dataService.loadBookableTimeSlots(),
   };
 };
 
@@ -157,6 +179,8 @@ export const saveBusinessSettings = async (settings) => {
   await simulateDelay();
   dataService.saveBusinessHours(settings.businessHours);
   dataService.saveHolidays(settings.holidays);
+  dataService.saveUnavailableDates(settings.unavailableDates);
+  dataService.saveBookableTimeSlots(settings.bookableTimeSlots);
   return { success: true };
 };
 
@@ -179,6 +203,52 @@ export const removeHoliday = async (holidayDate) => {
   dataService.saveHolidays(holidays);
   if (holidays.length === initialLength) {
     throw new Error('Holiday not found for removal.');
+  }
+  return { success: true };
+};
+
+export const addUnavailableDateApi = async (date) => {
+  await simulateDelay();
+  const unavailableDates = dataService.loadUnavailableDates();
+  if (unavailableDates.includes(date)) {
+    throw new Error('Unavailable date already exists.');
+  }
+  unavailableDates.push(date);
+  dataService.saveUnavailableDates(unavailableDates);
+  return { success: true, date };
+};
+
+export const removeUnavailableDateApi = async (date) => {
+  await simulateDelay();
+  let unavailableDates = dataService.loadUnavailableDates();
+  const initialLength = unavailableDates.length;
+  unavailableDates = unavailableDates.filter(d => d !== date);
+  dataService.saveUnavailableDates(unavailableDates);
+  if (unavailableDates.length === initialLength) {
+    throw new Error('Unavailable date not found for removal.');
+  }
+  return { success: true };
+};
+
+export const addTimeSlotApi = async (slot) => {
+  await simulateDelay();
+  const bookableTimeSlots = dataService.loadBookableTimeSlots();
+  if (bookableTimeSlots.some(s => s.start === slot.start && s.end === slot.end)) {
+    throw new Error('Time slot already exists.');
+  }
+  bookableTimeSlots.push(slot);
+  dataService.saveBookableTimeSlots(bookableTimeSlots);
+  return { success: true, slot };
+};
+
+export const removeTimeSlotApi = async (slot) => {
+  await simulateDelay();
+  let bookableTimeSlots = dataService.loadBookableTimeSlots();
+  const initialLength = bookableTimeSlots.length;
+  bookableTimeSlots = bookableTimeSlots.filter(s => !(s.start === slot.start && s.end === slot.end));
+  dataService.saveBookableTimeSlots(bookableTimeSlots);
+  if (bookableTimeSlots.length === initialLength) {
+    throw new Error('Time slot not found for removal.');
   }
   return { success: true };
 };

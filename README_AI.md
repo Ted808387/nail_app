@@ -81,7 +81,29 @@
     *   **`MyBookings.vue` 已更新為使用 `src/api/index.js` 進行數據操作。**
     *   **`AccountSettings.vue` 已更新為使用 `src/api/index.js` 進行數據操作。**
     *   **`SignIn.vue` 和 `SignUp.vue` 已更新為使用 `src/api/index.js` 進行數據操作。**
-    *   **已解決 `ServiceManagement.vue` 中 `saveService` 重複宣告的錯誤。**
+    *   **已解決 `ServiceManagement.vue` 中 `saveService` 重複宣告的錯誤 (將本地函數重新命名為 `handleSaveService`)。
+
+11. **功能增強與優化:**
+    *   **服務時長範圍化:** 在 `ServiceManagement.vue` 中，將服務的「所需時間時長」從單一數字改為「最短時長」和「最長時長」的範圍輸入。相應地更新了 `src/api/index.js` 和 `src/services/dataService.js` 以支援新的數據結構。
+    *   **預約流程服務時長顯示修正:** 修正了 `BookingFlow.vue` 中服務時長顯示為 `NaN` 的問題，現在會正確顯示服務時長範圍。
+    *   **營業設定新增不可預約日期與時間段落:** 在 `BusinessSettings.vue` 中新增了管理員設定不可預約日期和可預約時間段落的 UI 介面。相應地更新了 `src/api/index.js` 和 `src/services/dataService.js` 以支援新的數據結構和 API 函數。
+    *   **營業設定頁面功能修正:** 修正了 `BusinessSettings.vue` 中新增按鈕無作用的問題，並確保在沒有設定可預約時間段時，預約流程頁面預設為全天可預約。
+    *   **營業設定數據持久化修正:** 修正了 `src/services/dataService.js` 中營業設定（公休日、不可預約日期、可預約時間段落）的載入邏輯，確保預設數據只在 `localStorage` 中沒有資料時才寫入，解決了移除後預設數據仍保留的問題。
+    *   **預約流程時間段預設邏輯優化:** 優化了 `BookingFlow.vue` 中可預約時間段的生成邏輯，當管理員未設定特定時間段時，將預設顯示營業時間內的所有時間段。
+    *   **管理行事曆營業設定整合確認:** 確認 `BookingCalendar.vue` 已正確整合營業設定中的公休日、不可預約日期和營業時間，以標記日曆中的不可預約日期。可預約時間段落主要用於客戶端預約流程，管理員手動預約時可靈活輸入。
+    *   **客戶端預約日期選擇器優化:** 將 `BookingFlow.vue` 中的日期輸入框替換為自定義的 `CustomerCalendar.vue` 組件，提供更直觀的日曆選擇體驗，並顯示已被預約的日期。
+    *   **客戶端日曆組件錯誤修正:** 修正了 `CustomerCalendar.vue` 和 `BookingFlow.vue` 中因數據載入時序和 `ref` 變數存取方式導致的 `TypeError`。
+    *   **預約流程步驟二錯誤修正:** 修正了 `BookingFlow.vue` 中選擇服務後點擊「下一步」時的錯誤，確保 `filteredAvailableTimes` 和 `isDateBookable` 在營業設定數據載入完成後才進行計算。
+    *   **預約流程步驟三資訊補齊:** 在 `BookingFlow.vue` 的步驟三中加入了姓名、Email 和電話的輸入框，並修正了總價格的顯示位置。
+    *   **預約編號生成優化:** 將預約編號的生成方式調整為 `BOOK` 前綴加上 6 位隨機英數字串，以提高唯一性和可讀性。
+    *   **預約時間選擇精細化:**
+        *   在 `BookingFlow.vue` 的步驟二中，時間選擇列表現在會顯示所有符合管理員設定的可預約時間段。
+        *   已被預約的時間段會被禁用並標示為「(已預約)」。
+        *   `CustomerCalendar.vue` 中的日曆顯示邏輯已優化，只有當某個日期的所有可預約時間段都被預約滿時，該日期才會顯示為「已預約」。
+    *   **客戶端日曆「已預約」狀態邏輯優化:**
+        *   修正了舊預約紀錄缺少 `totalDuration` 時，導致日曆可用性判斷錯誤的 bug (現在會預設為 30 分鐘)。
+        *   日曆現在會根據使用者選擇的服務總時長 (`bookingDuration`)，動態檢查當天是否有足夠的**連續空閒時段**。
+        *   如果找不到足夠長的連續時段，該日期將被正確標示為「已預約」，防止使用者選擇無法完成服務的日期。
 
 ---
 
