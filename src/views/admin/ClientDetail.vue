@@ -45,7 +45,7 @@
 import { ref, onMounted } from 'vue';
 import { useRoute } from 'vue-router';
 import { useNotification } from '../../composables/useNotification';
-import { loadClients, saveClients } from '../../services/dataService'; // 引入 dataService
+import { fetchClientById, updateClient } from '../../api'; // 引入 API 函數
 
 const route = useRoute();
 const { showSuccess, showError } = useNotification();
@@ -63,9 +63,7 @@ onMounted(async () => {
 
   isLoading.value = true;
   try {
-    // 從 dataService 載入所有客戶數據
-    const allClients = loadClients();
-    const foundClient = allClients.find(c => c.id === clientId);
+    const foundClient = await fetchClientById(clientId); // 調用 API 函數
     if (foundClient) {
       client.value = { ...foundClient };
       editableClient.value = { ...foundClient }; // 複製一份用於編輯
@@ -84,20 +82,9 @@ async function updateClientDetails() {
   isLoading.value = true;
   console.log('更新客戶詳情:', editableClient.value);
   try {
-    // 模擬呼叫後端 API 更新客戶數據
-    await new Promise(resolve => setTimeout(resolve, 1000));
-    
-    // 更新 dataService 中的客戶數據
-    const allClients = loadClients();
-    const index = allClients.findIndex(c => c.id === editableClient.value.id);
-    if (index !== -1) {
-      allClients[index] = { ...editableClient.value };
-      saveClients(allClients); // 保存更新後的客戶列表
-      Object.assign(client.value, editableClient.value); // 更新顯示的客戶數據
-      showSuccess('客戶資料已成功更新！');
-    } else {
-      showError('更新失敗，找不到該客戶。');
-    }
+    const updatedClient = await updateClient(editableClient.value); // 調用 API 函數
+    Object.assign(client.value, updatedClient); // 更新顯示的客戶數據
+    showSuccess('客戶資料已成功更新！');
   } catch (error) {
     console.error('更新客戶詳情失敗:', error);
     showError('更新客戶詳情失敗，請稍後再試。');

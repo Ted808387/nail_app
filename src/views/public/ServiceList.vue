@@ -59,19 +59,24 @@
 </template>
 
 <script setup>
-import { ref, computed, onMounted } from 'vue'; // 引入 onMounted
+import { ref, computed, onMounted } from 'vue';
 import { useRouter } from 'vue-router';
 import { useNotification } from '../../composables/useNotification';
-import { loadServices } from '../../services/dataService'; // 引入 loadServices
+import { fetchServices } from '../../api'; // 引入 API 函數
 
 const router = useRouter();
-const { showInfo } = useNotification();
+const { showInfo, showError } = useNotification();
 
 const services = ref([]); // 初始化為空陣列
 
 // 組件掛載時載入數據
-onMounted(() => {
-  services.value = loadServices();
+onMounted(async () => {
+  try {
+    services.value = await fetchServices(); // 調用 API 函數
+  } catch (error) {
+    console.error('載入服務失敗:', error);
+    showError('載入服務失敗，請稍後再試。');
+  }
 });
 
 const selectedCategory = ref('');
@@ -104,7 +109,7 @@ const filteredAndSortedServices = computed(() => {
 
 function bookService(serviceId) {
   // 導向到預約流程，並帶上所選服務的 ID
-  showInfo('服務已加入預約流程！'); // 使用通知
+  showInfo('服務已加入預約流程！');
   router.push({ path: '/booking', query: { service: serviceId } });
 }
 </script>

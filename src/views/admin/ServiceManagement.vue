@@ -141,18 +141,27 @@
 </template>
 
 <script setup>
-import { ref, computed } from 'vue';
+import { ref, computed, onMounted } from 'vue';
+import { useNotification } from '../../composables/useNotification';
+import { fetchServices, saveService as apiSaveService, updateServiceStatus, deleteServiceApi, bulkServiceAction } from '../../api'; // 引入 API 函數，並將 saveService 重新命名為 apiSaveService
 
-const services = ref([
-  { id: 1, name: '手部光療', description: '專業細緻的手部光療服務，包含基礎保養與多樣款式選擇。', price: 1200, duration: 90, category: '手部護理', isActive: true, imageUrl: 'https://via.placeholder.com/100?text=Hand+Gel' },
-  { id: 2, name: '日式嫁接睫毛', description: '自然濃密的日式睫毛嫁接，採用輕柔手法，讓雙眼更有神。', price: 1800, duration: 120, category: '美睫', isActive: true, imageUrl: 'https://via.placeholder.com/100?text=Eyelash' },
-  { id: 3, name: '頭皮深層護理', description: '深層清潔與滋養頭皮，改善髮質問題，讓您的頭皮重獲健康活力。', price: 900, duration: 60, category: '頭皮護理', isActive: false, imageUrl: 'https://via.placeholder.com/100?text=Scalp' },
-]);
-
+const services = ref([]); // 初始化為空陣列
 const isModalOpen = ref(false);
 const currentService = ref({});
 const selectedServices = ref([]); // 用於批量操作
 const isLoading = ref(false); // 新增載入狀態
+
+const { showSuccess, showError } = useNotification(); // 使用通知組合式函數
+
+// 組件掛載時載入數據
+onMounted(async () => {
+  try {
+    services.value = await fetchServices(); // 調用 API 函數
+  } catch (error) {
+    console.error('載入服務失敗:', error);
+    showError('載入服務失敗，請稍後再試。');
+  }
+});
 
 const isAllSelected = computed(() => {
   return services.value.length > 0 && selectedServices.value.length === services.value.length;
@@ -176,33 +185,32 @@ function closeModal() {
   currentService.value = {}; // 清空
 }
 
-async function saveService() {
+async function saveService() { // 本地函數
   if (!currentService.value.name || !currentService.value.price || !currentService.value.duration) {
-    alert('請填寫服務名稱、價格和時長。');
+    showError('請填寫服務名稱、價格和時長。');
     return;
   }
 
   isLoading.value = true; // 開始載入
   try {
-    await new Promise(resolve => setTimeout(resolve, 800)); // 模擬網路延遲
+    const savedService = await apiSaveService(currentService.value); // 調用 API 函數 apiSaveService
 
     if (currentService.value.id) {
       // 編輯現有服務
-      const index = services.value.findIndex(s => s.id === currentService.value.id);
+      const index = services.value.findIndex(s => s.id === savedService.id);
       if (index !== -1) {
-        services.value[index] = { ...currentService.value };
-        alert('服務已更新！');
+        services.value[index] = { ...savedService };
+        showSuccess('服務已更新！');
       }
     } else {
       // 新增服務
-      currentService.value.id = services.value.length > 0 ? Math.max(...services.value.map(s => s.id)) + 1 : 1;
-      services.value.push({ ...currentService.value });
-      alert('服務已新增！');
+      services.value.push({ ...savedService });
+      showSuccess('服務已新增！');
     }
     closeModal();
   } catch (error) {
     console.error('儲存服務失敗:', error);
-    alert('儲存服務失敗，請稍後再試。');
+    showError('儲存服務失敗，請稍後再試。');
   } finally {
     isLoading.value = false; // 結束載入
   }
@@ -211,12 +219,12 @@ async function saveService() {
 async function toggleStatus(service) {
   isLoading.value = true; // 開始載入
   try {
-    await new Promise(resolve => setTimeout(resolve, 500)); // 模擬網路延遲
+    await updateServiceStatus(service.id, !service.isActive); // 調用 API 函數
     service.isActive = !service.isActive;
-    alert(`服務 "${service.name}" 已${service.isActive ? '上架' : '下架'}！`);
+    showSuccess(`服務 "${service.name}" 已${service.isActive ? '上架' : '下架'}！`);
   } catch (error) {
     console.error('切換服務狀態失敗:', error);
-    alert('切換服務狀態失敗，請稍後再試。');
+    showError('切換服務狀態失敗，請稍後再試。');
   } finally {
     isLoading.value = false; // 結束載入
   }
@@ -226,13 +234,13 @@ async function deleteService(id) {
   if (confirm('您確定要刪除此服務嗎？')) {
     isLoading.value = true; // 開始載入
     try {
-      await new Promise(resolve => setTimeout(resolve, 800)); // 模擬網路延遲
+      await deleteServiceApi(id); // 調用 API 函數
       services.value = services.value.filter(s => s.id !== id);
-      alert('服務已刪除！');
+      showSuccess('服務已刪除！');
       closeModal();
     } catch (error) {
       console.error('刪除服務失敗:', error);
-      alert('刪除服務失敗，請稍後再試。');
+      showError('刪除服務失敗，請稍後再試。');
     } finally {
       isLoading.value = false; // 結束載入
     }
@@ -241,7 +249,7 @@ async function deleteService(id) {
 
 async function bulkAction(action) {
   if (selectedServices.value.length === 0) {
-    alert('請選擇至少一項服務。');
+    showError('請選擇至少一項服務。');
     return;
   }
 
@@ -262,25 +270,14 @@ async function bulkAction(action) {
   if (confirm(confirmMessage)) {
     isLoading.value = true; // 開始載入
     try {
-      await new Promise(resolve => setTimeout(resolve, 1200)); // 模擬網路延遲
-
-      selectedServices.value.forEach(id => {
-        const service = services.value.find(s => s.id === id);
-        if (service) {
-          if (action === 'activate') {
-            service.isActive = true;
-          } else if (action === 'deactivate') {
-            service.isActive = false;
-          } else if (action === 'delete') {
-            services.value = services.value.filter(s => s.id !== id);
-          }
-        }
-      });
+      await bulkServiceAction(action, selectedServices.value); // 調用 API 函數
+      // 重新載入數據以反映批量操作的結果
+      services.value = await fetchServices();
       selectedServices.value = []; // 清空選中
-      alert(successMessage);
+      showSuccess(successMessage);
     } catch (error) {
       console.error('批量操作失敗:', error);
-      alert('批量操作失敗，請稍後再試。');
+      showError('批量操作失敗，請稍後再試。');
     } finally {
       isLoading.value = false; // 結束載入
     }

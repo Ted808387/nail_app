@@ -52,17 +52,22 @@
 </template>
 
 <script setup>
-import { ref, computed, onMounted } from 'vue'; // 引入 onMounted
+import { ref, computed, onMounted } from 'vue';
 import { useNotification } from '../../composables/useNotification';
-import { loadBookings, saveBookings } from '../../services/dataService'; // 引入 dataService
+import { fetchBookings, saveBooking } from '../../api'; // 引入 API 函數
 
 const bookings = ref([]); // 初始化為空陣列
 const isLoading = ref(false); // 新增載入狀態
 const { showSuccess, showError } = useNotification(); // 使用通知組合式函數
 
 // 組件掛載時載入數據
-onMounted(() => {
-  bookings.value = loadBookings();
+onMounted(async () => {
+  try {
+    bookings.value = await fetchBookings(); // 從 API 載入預約數據
+  } catch (error) {
+    console.error('載入預約失敗:', error);
+    showError('載入預約失敗，請稍後再試。');
+  }
 });
 
 const upcomingBookings = computed(() => {
@@ -87,17 +92,15 @@ async function cancelBooking(bookingId) {
   isLoading.value = true; // 開始載入
   console.log('嘗試取消預約:', bookingId);
   try {
-    // 在此處加入呼叫後端 API 取消預約的邏輯
-    await new Promise(resolve => setTimeout(resolve, 800)); // 模擬 API 呼叫
-
     const index = bookings.value.findIndex(b => b.id === bookingId);
     if (index !== -1) {
-      bookings.value[index].status = 'cancelled'; // 更新狀態
+      const updatedBooking = { ...bookings.value[index], status: 'cancelled' };
+      await saveBooking(updatedBooking); // 調用 API 函數
+      bookings.value[index].status = 'cancelled'; // 更新本地狀態
       showSuccess('預約已成功取消！'); // 使用通知
     } else {
       showError('取消失敗，找不到該預約。'); // 使用通知
     }
-    saveBookings(bookings.value); // 保存數據
   } catch (error) {
     console.error('取消預約失敗:', error);
     showError('取消預約失敗，請稍後再試。'); // 使用通知

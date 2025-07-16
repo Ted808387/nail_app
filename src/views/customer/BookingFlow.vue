@@ -83,13 +83,8 @@
             </li>
           </ul>
           <p><strong>總時長：</strong> {{ totalDuration }} 分鐘</p>
-          <p><strong>總價格：</strong> NT$ {{ totalPrice }}</p>
-          <p><strong>預約日期：</strong> {{ selectedDate }}</p>
-          <p><strong>預約時間：</strong> {{ selectedTime }}</p>
-          <p><strong>您的姓名：</strong> <input type="text" v-model="customerName" class="p-2 border rounded-md w-full mt-1 text-sm sm:text-base"></p>
-          <p><strong>您的 Email：</strong> <input type="email" v-model="customerEmail" class="p-2 border rounded-md w-full mt-1 text-sm sm:text-base"></p>
-          <p><strong>您的手機：：</strong> <input type="tel" v-model="customerPhone" class="p-2 border rounded-md w-full mt-1 text-sm sm:text-base"></p>
-          <p><strong>備註 (選填)：</strong> <textarea v-model="bookingNotes" rows="3" class="p-2 border rounded-md w-full mt-1 text-sm sm:text-base"></textarea></p>
+          <p><strong>總價格：：</strong> <input type="tel" v-model="customerPhone" class="p-2 border rounded-md w-full mt-1 text-sm sm:text-base"></p>
+          <p><strong>備註 (選填)：：</strong> <textarea v-model="bookingNotes" rows="3" class="p-2 border rounded-md w-full mt-1 text-sm sm:text-base"></textarea></p>
           <p v-if="errors.customerInfo" class="text-red-500 text-sm">{{ errors.customerInfo }}</p>
         </div>
         <div class="flex justify-between mt-6 sm:mt-8">
@@ -128,7 +123,7 @@
 import { ref, computed, onMounted } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
 import { useNotification } from '../../composables/useNotification';
-import { loadServices, loadBookings, saveBookings } from '../../services/dataService'; // 引入 dataService
+import { fetchServices, fetchBookings, saveBooking } from '../../api'; // 引入 API 函數
 
 const route = useRoute();
 const router = useRouter();
@@ -164,15 +159,20 @@ const minDate = computed(() => {
 });
 
 // 從 URL 參數獲取預選服務
-onMounted(() => {
-  availableServices.value = loadServices(); // 從 dataService 載入服務數據
-  bookings.value = loadBookings(); // 從 dataService 載入預約數據
+onMounted(async () => {
+  try {
+    availableServices.value = await fetchServices(); // 從 API 載入服務數據
+    bookings.value = await fetchBookings(); // 從 API 載入預約數據
 
-  if (route.query.service) {
-    const serviceId = parseInt(route.query.service);
-    if (availableServices.value.some(s => s.id === serviceId)) {
-      selectedServiceIds.value.push(serviceId);
+    if (route.query.service) {
+      const serviceId = parseInt(route.query.service);
+      if (availableServices.value.some(s => s.id === serviceId)) {
+        selectedServiceIds.value.push(serviceId);
+      }
     }
+  } catch (error) {
+    console.error('載入數據失敗:', error);
+    showError('載入數據失敗，請稍後再試。');
   }
 });
 
@@ -241,7 +241,6 @@ async function confirmBooking() {
   }
 
   isLoading.value = true; // 開始載入
-  // 這裡應呼叫後端 API 儲存預約
   console.log('提交預約資訊:', {
     services: selectedServiceIds.value,
     date: selectedDate.value,
@@ -255,10 +254,6 @@ async function confirmBooking() {
   });
 
   try {
-    await new Promise(resolve => setTimeout(resolve, 1000)); // 模擬 API 成功響應，生成預約 ID
-
-    bookingId.value = 'BOOK' + Math.random().toString(36).substr(2, 9).toUpperCase();
-
     // 將新預約添加到 bookings 陣列並保存
     const newBooking = {
       id: bookings.value.length > 0 ? Math.max(...bookings.value.map(b => b.id)) + 1 : 1,
@@ -269,9 +264,9 @@ async function confirmBooking() {
       status: 'pending', // 新預約預設為待處理
       notes: bookingNotes.value,
     };
-    bookings.value.push(newBooking);
-    saveBookings(bookings.value); // 保存數據
+    const savedBooking = await saveBooking(newBooking); // 調用 API 函數
 
+    bookingId.value = savedBooking.id;
     showSuccess('預約成功！'); // 使用通知
     currentStep.value = 4; // 進入成功頁
   } catch (error) {

@@ -36,22 +36,27 @@
 </template>
 
 <script setup>
-import { ref, computed } from 'vue';
-import { useRouter } from 'vue-router'; // 引入 useRouter
+import { ref, computed, onMounted } from 'vue'; // 引入 onMounted
+import { useRouter } from 'vue-router';
 import { useNotification } from '../../composables/useNotification';
+import { fetchClients } from '../../api'; // 引入 API 函數
 
-const clients = ref([
-  { id: 1, name: '陳小姐', email: 'chen@email.com', phone: '0911111111' },
-  { id: 2, name: '林先生', email: 'lin@email.com', phone: '0922222222' },
-  { id: 3, name: '王小姐', email: 'wang@email.com', phone: '0933333333' },
-  { id: 4, name: '張先生', email: 'zhang@email.com', phone: '0944444444' },
-]);
-
+const clients = ref([]); // 初始化為空陣列
 const searchQuery = ref('');
 // const isLoading = ref(false); // 移除 isLoading 狀態，因為導航是同步的
 const { showSuccess, showError } = useNotification();
 
-const router = useRouter(); // 使用 useRouter
+const router = useRouter();
+
+// 組件掛載時載入數據
+onMounted(async () => {
+  try {
+    clients.value = await fetchClients();
+  } catch (error) {
+    console.error('載入客戶失敗:', error);
+    showError('載入客戶失敗，請稍後再試。');
+  }
+});
 
 const filteredClients = computed(() => {
   if (!searchQuery.value) {
@@ -65,11 +70,8 @@ const filteredClients = computed(() => {
 });
 
 function viewClientDetails(clientId) {
-  // isLoading.value = true; // 移除 isLoading 狀態
   console.log('導向客戶詳情:', clientId);
   router.push({ name: 'ClientDetail', params: { id: clientId } }); // 導向客戶詳情頁面
-  // showSuccess(`正在導向客戶 ID: ${clientId} 的詳情頁面。`); // 導航成功後不需要額外提示
-  // isLoading.value = false; // 移除 isLoading 狀態
 }
 </script>
 

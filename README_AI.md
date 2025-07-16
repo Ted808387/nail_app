@@ -67,7 +67,21 @@
     *   **`Navbar.vue` 已更新為根據登入狀態顯示不同按鈕，並實現登出功能。**
     *   **`SignIn.vue` 和 `SignUp.vue` 已更新為使用 `useAuth.js` 的 `login` 方法來設置用戶狀態。**
     *   **`AccountSettings.vue` 已更新為使用 `dataService.js` 載入和保存用戶數據。**
+    *   **`Dashboard.vue` 已更新為從 `dataService.js` 載入數據。**
     *   **已添加全局導航守衛 (`src/router/index.js`)，確保只有登入用戶才能訪問受保護的路由，並且管理員用戶才能訪問管理員頁面。**
+
+10. **模擬 API 層:**
+    *   **已創建 `src/api/index.js`，用於提供模擬的 API 請求函數。**
+    *   **`BookingCalendar.vue` 已更新為使用 `src/api/index.js` 進行數據操作。**
+    *   **`ServiceManagement.vue` 已更新為使用 `src/api/index.js` 進行數據操作。**
+    *   **`ClientManagement.vue` 已更新為使用 `src/api/index.js` 進行數據操作。**
+    *   **`ClientDetail.vue` 已更新為使用 `src/api/index.js` 進行數據操作。**
+    *   **`ServiceList.vue` 已更新為使用 `src/api/index.js` 進行數據操作。**
+    *   **`BookingFlow.vue` 已更新為使用 `src/api/index.js` 進行數據操作。**
+    *   **`MyBookings.vue` 已更新為使用 `src/api/index.js` 進行數據操作。**
+    *   **`AccountSettings.vue` 已更新為使用 `src/api/index.js` 進行數據操作。**
+    *   **`SignIn.vue` 和 `SignUp.vue` 已更新為使用 `src/api/index.js` 進行數據操作。**
+    *   **已解決 `ServiceManagement.vue` 中 `saveService` 重複宣告的錯誤。**
 
 ---
 
@@ -80,6 +94,5 @@
 ---
 
 **下一步可能的工作方向 (待確認):**
-*   考慮添加更多模擬後端功能，例如用戶認證、數據庫操作等，以使應用程式更完整。
 *   添加單元測試或端到端測試。
 *   部署應用程式。
