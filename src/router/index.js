@@ -75,18 +75,8 @@ const routes = [
     component: ClientManagement,
     meta: { requiresAuth: true, requiresAdmin: true } // 需要登入且為管理員
   },
-  {
-    path: '/admin/clients/:id',
-    name: 'ClientDetail',
-    component: () => import('../views/admin/ClientDetail.vue'), // 動態載入組件
-    meta: { requiresAuth: true, requiresAdmin: true } // 需要登入且為管理員
-  },
-  {
-    path: '/admin/bookings/:id', // 新增預約詳情路由
-    name: 'BookingDetail',
-    component: () => import('../views/admin/BookingDetail.vue'), // 動態載入組件
-    meta: { requiresAuth: true, requiresAdmin: true } // 需要登入且為管理員
-  },
+  
+  
   {
     path: '/admin/settings',
     name: 'BusinessSettings',
