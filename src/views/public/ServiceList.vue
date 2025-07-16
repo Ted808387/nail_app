@@ -44,7 +44,7 @@
         </div>
         <div class="service-details flex flex-col items-center md:items-end text-center md:text-right mt-0 md:mt-0">
           <span class="text-base sm:text-lg font-medium text-soft-blue-700 mb-1">價格: NT$ {{ service.price }}</span>
-          <span class="text-xs sm:text-sm mb-3 text-soft-blue-600">所需時間: {{ service.duration }} 分鐘</span>
+          <span class="text-xs sm:text-sm mb-3 text-soft-blue-600">所需時間: {{ service.minDuration }} - {{ service.maxDuration }} 分鐘</span>
           <button @click="bookService(service.id)"
             class="px-5 py-2 bg-soft-blue-600 text-white rounded-full shadow-md hover:bg-soft-blue-700 transition duration-300 text-sm sm:text-base">
             選擇此服務

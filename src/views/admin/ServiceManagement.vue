@@ -124,9 +124,17 @@
               </div>
             </div>
             <div class="mb-5 sm:mb-6">
-              <label for="service-image" class="block text-soft-blue-700 text-sm sm:text-base font-bold mb-2">圖片 URL</label>
-              <input type="text" id="service-image" v-model="currentService.imageUrl" placeholder="圖片 URL"
-                class="shadow appearance-none border border-soft-blue-300 rounded-xl w-full py-2 sm:py-3 px-3 sm:px-4 text-gray-700 leading-tight focus:outline-none focus:shadow-outline focus:border-soft-blue-400">
+              <label class="block text-soft-blue-700 text-sm sm:text-base font-bold mb-2">服務圖片</label>
+              <div class="mt-2 flex items-center space-x-4">
+                <img :src="currentService.imageUrl || 'https://via.placeholder.com/100?text=Preview'" 
+                     alt="Service Image Preview" 
+                     class="w-24 h-24 object-cover rounded-lg border border-soft-blue-200">
+                <input type="file" ref="imageInput" @change="handleImageUpload" accept="image/*" class="hidden">
+                <button type="button" @click="triggerImageUpload" :disabled="isLoading"
+                        class="px-4 py-2 bg-soft-blue-500 text-white rounded-full shadow-md hover:bg-soft-blue-600 transition duration-300 disabled:opacity-50">
+                  {{ isLoading ? '上傳中...' : '選擇圖片' }}
+                </button>
+              </div>
             </div>
             <div class="mb-5 sm:mb-6 flex items-center">
               <input type="checkbox" id="service-active" v-model="currentService.isActive" class="mr-2 leading-tight h-4 w-4 text-soft-blue-600 focus:ring-soft-blue-500 border-gray-300 rounded">
@@ -157,6 +165,7 @@ const isModalOpen = ref(false);
 const currentService = ref({});
 const selectedServices = ref([]); // 用於批量操作
 const isLoading = ref(false); // 新增載入狀態
+const imageInput = ref(null); // 用於圖片檔案輸入的引用
 
 const { showSuccess, showError } = useNotification(); // 使用通知組合式函數
 
@@ -294,6 +303,38 @@ async function bulkAction(action) {
       isLoading.value = false; // 結束載入
     }
   }
+}
+
+// --- 圖片上傳相關 --- 
+function triggerImageUpload() {
+  imageInput.value.click();
+}
+
+async function handleImageUpload(event) {
+  const file = event.target.files[0];
+  if (file) {
+    isLoading.value = true;
+    try {
+      const base64String = await toBase64(file);
+      currentService.value.imageUrl = base64String;
+      showSuccess('圖片已成功預覽！');
+    } catch (error) {
+      console.error('圖片轉換失敗:', error);
+      showError('圖片讀取失敗，請選擇其他圖片。');
+    } finally {
+      isLoading.value = false;
+    }
+  }
+}
+
+// 將檔案轉換為 Base64
+function toBase64(file) {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.readAsDataURL(file);
+    reader.onload = () => resolve(reader.result);
+    reader.onerror = error => reject(error);
+  });
 }
 </script>
 
