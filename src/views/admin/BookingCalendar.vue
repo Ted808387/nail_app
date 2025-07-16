@@ -89,13 +89,13 @@
             </div>
             <div class="mb-4">
               <label for="bookingDate" class="block text-soft-blue-700 text-sm font-bold mb-2">日期 <span class="text-red-500">*</span></label>
-              <input type="date" id="bookingDate" v-model="editingBooking.date" required
-                class="shadow appearance-none border border-soft-blue-300 rounded-xl w-full py-3 px-4 text-gray-700 leading-tight focus:outline-none focus:shadow-outline focus:border-soft-blue-400">
+              <input type="date" id="bookingDate" v-model="editingBooking.date" :disabled="editingBooking.id" required
+                class="shadow appearance-none border border-soft-blue-300 rounded-xl w-full py-3 px-4 text-gray-700 leading-tight focus:outline-none focus:shadow-outline focus:border-soft-blue-400 disabled:bg-gray-100 disabled:cursor-not-allowed">
             </div>
             <div class="mb-4">
               <label for="bookingTime" class="block text-soft-blue-700 text-sm font-bold mb-2">時間 <span class="text-red-500">*</span></label>
-              <input type="time" id="bookingTime" v-model="editingBooking.time" required
-                class="shadow appearance-none border border-soft-blue-300 rounded-xl w-full py-3 px-4 text-gray-700 leading-tight focus:outline-none focus:shadow-outline focus:border-soft-blue-400">
+              <input type="time" id="bookingTime" v-model="editingBooking.time" :disabled="editingBooking.id" required
+                class="shadow appearance-none border border-soft-blue-300 rounded-xl w-full py-3 px-4 text-gray-700 leading-tight focus:outline-none focus:shadow-outline focus:border-soft-blue-400 disabled:bg-gray-100 disabled:cursor-not-allowed">
             </div>
             <div class="mb-4">
               <label for="status" class="block text-soft-blue-700 text-sm font-bold mb-2">狀態</label>
