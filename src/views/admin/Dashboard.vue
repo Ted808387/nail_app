@@ -96,13 +96,61 @@
                 <td class="py-2 sm:py-3 px-3 sm:px-4 border-b border-soft-blue-200 text-soft-blue-800 text-xs sm:text-sm">{{ booking.date }}</td>
                 <td class="py-2 sm:py-3 px-3 sm:px-4 border-b border-soft-blue-200 text-soft-blue-800 text-xs sm:text-sm">{{ booking.time }}</td>
                 <td class="py-2 sm:py-3 px-3 sm:px-4 border-b border-soft-blue-200">
-                  <button @click="viewBookingDetail(booking.id)" class="text-soft-blue-600 hover:text-soft-blue-800 font-medium text-xs sm:text-sm">
+                  <button @click="viewBookingDetail(booking)" class="text-soft-blue-600 hover:text-soft-blue-800 font-medium text-xs sm:text-sm">
                     查看詳情
                   </button>
                 </td>
               </tr>
             </tbody>
           </table>
+        </div>
+      </div>
+    </div>
+
+    <!-- 預約詳情 Modal -->
+    <div v-if="isModalOpen && selectedBooking" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+      <div class="bg-white rounded-2xl shadow-xl p-6 sm:p-8 w-full max-w-lg relative border border-soft-blue-200">
+        <button @click="closeModal" class="absolute top-3 right-3 text-gray-500 hover:text-gray-700 text-2xl sm:text-3xl font-bold">&times;</button>
+        <h2 class="text-2xl sm:text-3xl font-bold text-soft-blue-800 mb-5 sm:mb-6">預約詳情</h2>
+        <div v-if="selectedBooking" class="space-y-4">
+          <p class="text-soft-blue-700 text-base sm:text-lg"><strong>預約 ID:</strong> {{ selectedBooking.id }}</p>
+          <p class="text-soft-blue-700 text-base sm:text-lg"><strong>客戶姓名:</strong> {{ selectedBooking.clientName }}</p>
+          <p class="text-soft-blue-700 text-base sm:text-lg"><strong>服務項目:</strong> {{ selectedBooking.serviceName }}</p>
+          <p class="text-soft-blue-700 text-base sm:text-lg"><strong>日期:</strong> {{ selectedBooking.date }}</p>
+          <p class="text-soft-blue-700 text-base sm:text-lg"><strong>時間:</strong> {{ selectedBooking.time }}</p>
+          <p><strong>狀態：</strong>
+            <span v-if="!isEditing" :class="getStatusClass(selectedBooking.status)">{{ getStatusText(selectedBooking.status) }}</span>
+            <select v-else v-model="selectedBooking.status" class="p-2 border rounded-md text-sm sm:text-base">
+              <option value="pending">待處理</option>
+              <option value="confirmed">已確認</option>
+              <option value="cancelled">已取消</option>
+              <option value="completed">已完成</option>
+            </select>
+          </p>
+          <p><strong>備註：</strong>
+            <span v-if="!isEditing">{{ selectedBooking.notes || '無' }}</span>
+            <textarea v-else v-model="selectedBooking.notes" rows="3" class="p-2 border rounded-md w-full mt-1 text-sm sm:text-base" placeholder="請輸入備註"></textarea>
+          </p>
+
+          <div class="mt-6 sm:mt-8 flex justify-end space-x-4">
+            <button v-if="!isEditing" @click="startEditing" :disabled="isLoading"
+              class="px-6 py-2 bg-blue-500 text-white rounded-full shadow-md hover:bg-blue-600 transition duration-300 disabled:opacity-50 disabled:cursor-not-allowed">
+              編輯
+            </button>
+            <template v-else>
+              <button @click="saveChanges" :disabled="isLoading"
+                class="px-6 py-2 bg-green-500 text-white rounded-full shadow-md hover:bg-green-600 transition duration-300 disabled:opacity-50 disabled:cursor-not-allowed">
+                {{ isLoading ? '儲存中...' : '儲存' }}
+              </button>
+              <button @click="cancelEditing" :disabled="isLoading"
+                class="px-6 py-2 bg-gray-300 text-gray-800 rounded-full shadow-md hover:bg-gray-400 transition duration-300 disabled:opacity-50 disabled:cursor-not-allowed">
+                取消
+              </button>
+            </template>
+          </div>
+        </div>
+        <div v-else class="text-center text-soft-blue-600 text-base sm:text-lg py-8">
+          載入預約詳情中...
         </div>
       </div>
     </div>
@@ -113,6 +161,7 @@
 import { ref, onMounted } from 'vue';
 import { useRouter } from 'vue-router';
 import { loadBookings, loadClients, loadServices } from '../../services/dataService';
+import { useNotification } from '../../composables/useNotification';
 
 const router = useRouter();
 
@@ -125,7 +174,34 @@ const dashboardData = ref({
   recentPendingBookings: [],
 });
 
-// 模擬從後端獲取數據
+const isModalOpen = ref(false); // 控制 Modal 開關
+const selectedBooking = ref(null); // 儲存選中的預約資料
+const isLoading = ref(false); // 新增載入狀態，用於 Modal 內的編輯操作
+const isEditing = ref(false); // 控制 Modal 內的編輯模式
+const originalBooking = ref(null); // 用於儲存原始數據，以便取消編輯時恢復
+
+const { showSuccess, showError } = useNotification();
+
+const getStatusText = (status) => {
+  switch (status) {
+    case 'confirmed': return '已確認';
+    case 'pending': return '待處理';
+    case 'cancelled': return '已取消';
+    case 'completed': return '已完成';
+    default: return '未知';
+  }
+};
+
+const getStatusClass = (status) => {
+  switch (status) {
+    case 'confirmed': return 'text-green-600';
+    case 'pending': return 'text-orange-600';
+    case 'cancelled': return 'text-red-600';
+    case 'completed': return 'text-blue-600';
+    default: return 'text-gray-600';
+  }
+};
+
 const fetchDashboardData = () => {
   const allBookings = loadBookings();
   const allClients = loadClients();
@@ -183,10 +259,55 @@ onMounted(() => {
   fetchDashboardData();
 });
 
-function viewBookingDetail(bookingId) {
-  // 導向到預約詳情頁面，可能需要一個新的路由或彈窗
-  console.log('查看預約詳情:', bookingId);
-  router.push({ name: 'BookingDetail', params: { id: bookingId } }); // 導向預約詳情頁面
+function viewBookingDetail(booking) {
+  selectedBooking.value = { ...booking }; // 複製一份，避免直接修改列表中的數據
+  originalBooking.value = { ...booking }; // 儲存原始數據
+  isModalOpen.value = true;
+  isEditing.value = false; // 預設為非編輯模式
+}
+
+function closeModal() {
+  isModalOpen.value = false;
+  selectedBooking.value = null;
+  isEditing.value = false; // 關閉時重置編輯模式
+  originalBooking.value = null; // 關閉時清空原始數據
+}
+
+function startEditing() {
+  isEditing.value = true;
+  originalBooking.value = { ...selectedBooking.value }; // 儲存當前狀態以便取消時恢復
+}
+
+async function saveChanges() {
+  isLoading.value = true;
+  try {
+    // 模擬 API 呼叫
+    await new Promise(resolve => setTimeout(resolve, 500));
+
+    const allBookings = loadBookings();
+    const index = allBookings.findIndex(b => b.id === selectedBooking.value.id);
+    if (index !== -1) {
+      allBookings[index] = { ...selectedBooking.value }; // 更新數據
+      saveBookings(allBookings);
+      showSuccess('預約已成功更新！');
+      isEditing.value = false;
+      originalBooking.value = null; // 更新原始數據
+      fetchDashboardData(); // 重新載入儀表板數據以反映變更
+    } else {
+      showError('更新失敗，找不到該預約。');
+    }
+  } catch (error) {
+    console.error('儲存變更失敗:', error);
+    showError('儲存變更失敗，請稍後再試。');
+  } finally {
+    isLoading.value = false;
+  }
+}
+
+function cancelEditing() {
+  selectedBooking.value = { ...originalBooking.value }; // 恢復原始數據
+  isEditing.value = false;
+  originalBooking.value = null; // 清空原始數據
 }
 </script>
 
