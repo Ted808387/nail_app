@@ -168,7 +168,7 @@
 <script setup>
 import { ref, onMounted } from 'vue';
 import { useRouter } from 'vue-router';
-import { loadBookings, loadClients, loadServices } from '../../services/dataService';
+import { fetchBookings, fetchClients, fetchServices, updateBooking } from '../../api';
 import { useNotification } from '../../composables/useNotification';
 
 const router = useRouter();
@@ -210,57 +210,63 @@ const getStatusClass = (status) => {
   }
 };
 
-const fetchDashboardData = () => {
-  const allBookings = loadBookings();
-  const allClients = loadClients();
-  const allServices = loadServices();
+const fetchDashboardData = async () => {
+  try {
+    const allBookings = await fetchBookings();
+    const allClients = await fetchClients();
+    const allServices = await fetchServices();
 
-  const today = new Date();
-  today.setHours(0, 0, 0, 0);
-  const startOfWeek = new Date(today);
-  startOfWeek.setDate(today.getDate() - today.getDay()); // 本週日
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    const startOfWeek = new Date(today);
+    startOfWeek.setDate(today.getDate() - today.getDay()); // 本週日
 
-  // 今日預約數
-  dashboardData.value.todayAppointments = allBookings.filter(b => {
-    const bookingDate = new Date(b.date);
-    return bookingDate.toDateString() === today.toDateString() && b.status !== 'cancelled';
-  }).length;
+    // 今日預約數
+    dashboardData.value.todayAppointments = allBookings.filter(b => {
+      const bookingDate = new Date(b.date);
+      return bookingDate.toDateString() === today.toDateString() && b.status !== 'cancelled';
+    }).length;
 
-  // 本週預估收入
-  dashboardData.value.weeklyRevenue = allBookings.filter(b => {
-    const bookingDate = new Date(b.date);
-    return bookingDate >= startOfWeek && bookingDate <= today && b.status === 'confirmed';
-  }).reduce((sum, booking) => {
-    const service = allServices.find(s => s.name === booking.serviceName); // 假設 serviceName 匹配
-    return sum + (service ? service.price : 0);
-  }, 0);
+    // 本週預估收入
+    dashboardData.value.weeklyRevenue = allBookings.filter(b => {
+      const bookingDate = new Date(b.date);
+      return bookingDate >= startOfWeek && bookingDate <= today && b.status === 'confirmed';
+    }).reduce((sum, booking) => {
+      const service = allServices.find(s => s.id === booking.service_id); // 假設 service_id 匹配
+      return sum + (service ? service.price : 0);
+    }, 0);
 
-  // 本月新客戶
-  const startOfMonth = new Date(today.getFullYear(), today.getMonth(), 1);
-  dashboardData.value.newClientsMonth = allClients.filter(c => {
-    const regDate = new Date(c.registrationDate);
-    return regDate >= startOfMonth && regDate <= today; // 假設 registrationDate 存在
-  }).length;
+    // 本月新客戶
+    const startOfMonth = new Date(today.getFullYear(), today.getMonth(), 1);
+    dashboardData.value.newClientsMonth = allClients.filter(c => {
+      const regDate = new Date(c.registration_date); // 注意這裡的欄位名稱
+      return regDate >= startOfMonth && regDate <= today; // 假設 registration_date 存在
+    }).length;
 
-  // 待處理預約
-  dashboardData.value.pendingAppointments = allBookings.filter(b => b.status === 'pending').length;
+    // 待處理預約
+    dashboardData.value.pendingAppointments = allBookings.filter(b => b.status === 'pending').length;
 
-  // 最受歡迎服務 (簡化：只計算預約次數)
-  const serviceCounts = {};
-  allBookings.forEach(b => {
-    if (b.serviceName) {
-      serviceCounts[b.serviceName] = (serviceCounts[b.serviceName] || 0) + 1;
-    }
-  });
-  dashboardData.value.popularServices = Object.keys(serviceCounts)
-    .map(name => ({ name, count: serviceCounts[name] }))
-    .sort((a, b) => b.count - a.count)
-    .slice(0, 3); // 只顯示前3名
+    // 最受歡迎服務 (簡化：只計算預約次數)
+    const serviceCounts = {};
+    allBookings.forEach(b => {
+      const service = allServices.find(s => s.id === b.service_id);
+      if (service) {
+        serviceCounts[service.name] = (serviceCounts[service.name] || 0) + 1;
+      }
+    });
+    dashboardData.value.popularServices = Object.keys(serviceCounts)
+      .map(name => ({ name, count: serviceCounts[name] }))
+      .sort((a, b) => b.count - a.count)
+      .slice(0, 3); // 只顯示前3名
 
-  // 近期待處理預約
-  dashboardData.value.recentPendingBookings = allBookings.filter(b => b.status === 'pending')
-    .sort((a, b) => new Date(a.date) - new Date(b.date))
-    .slice(0, 5); // 只顯示最近5筆
+    // 近期待處理預約
+    dashboardData.value.recentPendingBookings = allBookings.filter(b => b.status === 'pending')
+      .sort((a, b) => new Date(a.date) - new Date(b.date))
+      .slice(0, 5); // 只顯示最近5筆
+  } catch (error) {
+    console.error('載入儀表板數據失敗:', error);
+    showError('載入儀表板數據失敗，請稍後再試。');
+  }
 };
 
 onMounted(() => {
@@ -289,21 +295,15 @@ function startEditing() {
 async function saveChanges() {
   isLoading.value = true;
   try {
-    // 模擬 API 呼叫
-    await new Promise(resolve => setTimeout(resolve, 500));
-
-    const allBookings = loadBookings();
-    const index = allBookings.findIndex(b => b.id === selectedBooking.value.id);
-    if (index !== -1) {
-      allBookings[index] = { ...selectedBooking.value }; // 更新數據
-      saveBookings(allBookings);
-      showSuccess('預約已成功更新！');
-      isEditing.value = false;
-      originalBooking.value = null; // 更新原始數據
-      fetchDashboardData(); // 重新載入儀表板數據以反映變更
-    } else {
-      showError('更新失敗，找不到該預約。');
-    }
+    const updatedData = {
+      notes: selectedBooking.value.notes,
+      status: selectedBooking.value.status // Allow updating status from modal
+    };
+    await updateBooking(selectedBooking.value.id, updatedData);
+    showSuccess('預約已成功更新！');
+    isEditing.value = false;
+    originalBooking.value = null; // Clear original data
+    fetchDashboardData(); // Reload dashboard data to reflect changes
   } catch (error) {
     console.error('儲存變更失敗:', error);
     showError('儲存變更失敗，請稍後再試。');

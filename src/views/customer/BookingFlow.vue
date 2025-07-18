@@ -144,10 +144,12 @@ import { useRoute, useRouter } from 'vue-router';
 import { useNotification } from '../../composables/useNotification';
 import { fetchServices, fetchBookings, saveBooking, fetchBusinessSettings } from '../../api'; // 引入 API 函數
 import CustomerCalendar from '../../components/CustomerCalendar.vue';
+import { useAuth } from '../../composables/useAuth'; // 引入 useAuth
 
 const route = useRoute();
 const router = useRouter();
 const { showSuccess, showError, showInfo } = useNotification();
+const { currentUserId } = useAuth(); // 獲取當前用戶 ID
 
 const currentStep = ref(1);
 const selectedServiceIds = ref([]);
@@ -400,15 +402,12 @@ async function confirmBooking() {
   try {
     // 將新預約添加到 bookings 陣列並保存
     const newBooking = {
-      clientName: customerName.value,
-      customerEmail: customerEmail.value,
-      customerPhone: customerPhone.value,
-      serviceName: selectedServicesDetails.value.map(s => s.name).join(', '), // 組合服務名稱
+      user_id: currentUserId.value,
+      service_id: selectedServiceIds.value[0], // 假設一次只能預約一個服務
       date: selectedDate.value,
       time: selectedTime.value,
       status: 'pending', // 新預約預設為待處理
       notes: bookingNotes.value,
-      totalDuration: totalDuration.value, // 新增：保存預約的總時長
     };
     const savedBooking = await saveBooking(newBooking); // 調用 API 函數
 

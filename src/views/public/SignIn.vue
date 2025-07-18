@@ -45,7 +45,7 @@
 import { ref } from 'vue';
 import { useRouter } from 'vue-router';
 import { useNotification } from '../../composables/useNotification';
-import { loadUsers } from '../../services/dataService'; // 引入 loadUsers
+import { loginUser } from '../../api'; // 引入 loginUser
 import { useAuth } from '../../composables/useAuth'; // 引入 useAuth
 
 const email = ref('');
@@ -87,38 +87,21 @@ async function handleSignIn() {
   try {
     console.log('嘗試登入:', { email: email.value, password: password.value, rememberMe: rememberMe.value });
 
-    await new Promise(resolve => setTimeout(() => {
-      const users = loadUsers();
-      const foundUser = users.find(user => user.email === email.value && user.password === password.value);
-      if (foundUser) {
-        resolve({ success: true, user: foundUser });
-      } else {
-        resolve({ success: false, message: 'Email 或密碼不正確。' });
-      }
-    }, 1000));
+    const response = await loginUser(email.value, password.value);
 
-    const response = await new Promise(resolve => setTimeout(() => {
-      const users = loadUsers();
-      const foundUser = users.find(user => user.email === email.value && user.password === password.value);
-      if (foundUser) {
-        resolve({ success: true, user: foundUser });
-      } else {
-        resolve({ success: false, message: 'Email 或密碼不正確。' });
-      }
-    }, 1000));
-
-    if (response.success) {
+    if (response.user_id) {
       showSuccess('登入成功！');
-      login(response.user.id, response.user.role); // 使用 useAuth 的 login 方法
+      login(response.user_id, response.user_role); // 使用 useAuth 的 login 方法
 
-      if (response.user.role === 'admin') {
+      if (response.user_role === 'admin') {
         router.push('/admin');
       } else {
         router.push('/my-bookings');
       }
     } else {
-      loginError.value = response.message;
-      showError(response.message);
+      // 這裡的錯誤處理可能需要根據實際 API 返回的錯誤格式調整
+      loginError.value = 'Email 或密碼不正確。';
+      showError('Email 或密碼不正確。');
     }
 
   } catch (error) {

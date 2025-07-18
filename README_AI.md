@@ -63,11 +63,12 @@
     *   **所有使用 `localStorage` 的組件都已更新為使用 `dataService.js` 進行數據持久化。**
 
 9.  **用戶認證狀態管理:**
-    *   **已創建 `src/composables/useAuth.js`，提供 `isLoggedIn`、`isAdmin`、`login` 和 `logout` 方法。**
+    *   **已修改 `src/composables/useAuth.js`，使其透過 `src/api/index.js` 呼叫後端 API 進行實際的 `login` 和 `register` 操作。**
+    *   **`useAuth.js` 現在提供 `isLoggedIn`、`isAdmin`、`login`、`register`、`logout` 和 `checkAuthStatus` 方法。**
     *   **`Navbar.vue` 已更新為根據登入狀態顯示不同按鈕，並實現登出功能。**
-    *   **`SignIn.vue` 和 `SignUp.vue` 已更新為使用 `useAuth.js` 的 `login` 方法來設置用戶狀態。**
-    *   **`AccountSettings.vue` 已更新為使用 `dataService.js` 載入和保存用戶數據。**
-    *   **`Dashboard.vue` 已更新為從 `dataService.js` 載入數據。**
+    *   **`SignIn.vue` 和 `SignUp.vue` 已更新為使用 `useAuth.js` 的 `login` 和 `register` 方法來處理用戶認證。**
+    *   **`AccountSettings.vue` 已更新為使用 `useAuth.js` 提供的認證狀態。**
+    *   **`Dashboard.vue` 已更新為從 `dataService.js` 載入數據 (此處應為從 API 載入，但此處僅記錄 `useAuth` 相關)。**
     *   **已添加全局導航守衛 (`src/router/index.js`)，確保只有登入用戶才能訪問受保護的路由，並且管理員用戶才能訪問管理員頁面。**
 
 10. **模擬 API 層:**
@@ -82,6 +83,27 @@
     *   **`AccountSettings.vue` 已更新為使用 `src/api/index.js` 進行數據操作。**
     *   **`SignIn.vue` 和 `SignUp.vue` 已更新為使用 `src/api/index.js` 進行數據操作。**
     *   **已解決 `ServiceManagement.vue` 中 `saveService` 重複宣告的錯誤 (將本地函數重新命名為 `handleSaveService`)。
+
+11. **API 串接與功能完善:**
+    *   **使用者個人資料管理:**
+        *   後端已新增 `GET /users/me`、`PUT /users/me` 和 `POST /users/me/change-password` API。
+        *   前端 `src/api/index.js` 中的 `fetchUserById`、`updateUserProfile` 和 `changeUserPassword` 函數已完成串接。
+    *   **服務狀態快速切換:**
+        *   後端已新增 `PATCH /services/{service_id}/status` API。
+        *   前端 `src/api/index.js` 中的 `updateServiceStatus` 函數已完成串接。
+    *   **服務批次操作:**
+        *   後端已新增 `POST /services/bulk-action` API。
+        *   前端 `src/api/index.js` 中的 `bulkServiceAction` 函數已完成串接。
+
+        *   前端 `src/api/index.js` 中的 `bulkServiceAction` 函數已完成串接。
+    *   **營業設定統一管理:**
+        *   後端已新增 `PUT /admin/settings/` API。
+        *   前端 `src/api/index.js` 中的 `saveBusinessSettings` 函數已完成串接。
+
+        *   前端 `src/api/index.js` 中的 `saveBusinessSettings` 函數已完成串接。
+    *   **可預約時間段管理:**
+        *   後端已新增 `POST /admin/settings/time-slots` 和 `DELETE /admin/settings/time-slots/{time_slot_id}` API。
+        *   前端 `src/api/index.js` 中的 `addTimeSlotApi` 和 `removeTimeSlotApi` 函數已完成串接。
 
 11. **功能增強與優化:**
     *   **服務時長範圍化:** 在 `ServiceManagement.vue` 中，將服務的「所需時間時長」從單一數字改為「最短時長」和「最長時長」的範圍輸入。相應地更新了 `src/api/index.js` 和 `src/services/dataService.js` 以支援新的數據結構。
@@ -128,3 +150,159 @@
 **下一步可能的工作方向 (待確認):**
 *   添加單元測試或端到端測試。
 *   部署應用程式。
+
+## 前端開發進度
+
+### 階段一：前端 `dataService` 替換為真實 API 呼叫
+
+1.  **安裝 Axios：**
+    *   在 `sidep_app` 專案中安裝了 `axios` HTTP 客戶端函式庫。
+
+2.  **配置 Axios 實例與 JWT 攔截器：**
+    *   修改了 `src/api/index.js`，引入 `axios` 並配置 `apiClient` 實例。
+    *   設定後端 API 的基礎 URL (`http://127.0.0.1:8000`)。
+    *   添加請求攔截器，用於自動在每個受保護的請求中添加 JWT Token 到 `Authorization` 頭部。
+    *   添加響應攔截器，用於處理全局錯誤（例如 401 Unauthorized，自動跳轉到登入頁）。
+
+3.  **替換認證相關的 API 呼叫：**
+    *   修改了 `src/api/index.js` 中的 `registerUser` 和 `loginUser` 函數，使其呼叫後端 `/auth/register` 和 `/auth/login` 端點。
+    *   在 `loginUser` 成功後，將返回的 JWT Token 儲存到 `localStorage` 中。
+
+4.  **替換預約相關的 API 呼叫：**
+    *   修改了 `src/api/index.js` 中的 `fetchBookings`、`saveBooking` 和 `deleteBooking` 函數，使其呼叫後端 `/bookings` 端點。
+
+5.  **替換服務相關的 API 呼叫：**
+    *   修改了 `src/api/index.js` 中的 `fetchServices`、`saveService`、`updateServiceStatus`、`deleteServiceApi` 和 `bulkServiceAction` 函數，使其呼叫後端 `/services` 端點。
+
+6.  **替換客戶相關的 API 呼叫：**
+    *   修改了 `src/api/index.js` 中的 `fetchClients`、`fetchClientById` 和 `updateClient` 函數，使其呼叫後端 `/admin/clients` 端點。
+
+7.  **替換營業設定相關的 API 呼叫：**
+    *   修改了 `src/api/index.js` 中的 `fetchBusinessSettings`、`saveBusinessSettings`、`addHoliday`、`removeHoliday`、`addUnavailableDateApi` 和 `removeUnavailableDateApi` 函數，使其呼叫後端 `/admin/settings` 端點。
+
+**目前狀態：**
+
+*   前端專案 `sidep_app` 中的 `src/api/index.js` 檔案已完成修改，所有模擬的 `dataService` 呼叫都已替換為對後端 FastAPI API 的實際 HTTP 請求。
+*   `addTimeSlotApi` 和 `removeTimeSlotApi` 這些函數在前端仍有 `console.warn` 提示，因為後端目前沒有直接對應的 API 端點。
+
+**下一步：**
+
+### **前端 API 連接規劃**
+
+**目標：** 將 `sidep_app` 中的 UI 元素（按鈕、表單提交等）與 `src/api/index.js` 中已對接的後端 API 函數連接起來。
+
+**規劃原則：**
+*   優先處理核心功能。
+*   每個組件會列出需要連接的 API 函數和觸發這些函數的 UI 元素。
+*   確保數據的載入、提交、更新和刪除都正確地透過 API 進行。
+
+#### **階段一：認證與使用者資料**
+
+1.  **`src/views/public/SignIn.vue` (登入頁面)**
+    *   **API 函數：** `loginUser`
+    *   **連接點：** 登入表單提交事件 (`@submit`)。當用戶點擊「登入」按鈕時，觸發 `loginUser` 函數，並傳遞用戶輸入的電子郵件和密碼。
+    *   **狀態：** 已完成.
+
+2.  **`src/views/public/SignUp.vue` (註冊頁面)**
+    *   **API 函數：** `registerUser`
+    *   **連接點：** 註冊表單提交事件 (`@submit`)。當用戶點擊「註冊」按鈕時，觸發 `registerUser` 函數，並傳遞用戶輸入的註冊資料。
+    *   **狀態：** 已完成.
+
+3.  **`src/components/Navbar.vue` (全局導航欄)**
+    *   **API 函數：** `useAuth().logout`
+    *   **連接點：** 「登出」按鈕點擊事件 (`@click`)。當用戶點擊登出時，觸發 `logout` 函數以清除認證狀態。
+    *   **狀態顯示：** 根據 `useAuth().isLoggedIn` 和 `useAuth().isAdmin` 的狀態，動態顯示「登入/註冊」連結或「我的帳戶/管理員儀表板」連結。
+    *   **狀態：** 已完成.
+    *   **狀態：** 已完成。
+
+4.  **`src/views/customer/AccountSettings.vue` (帳戶設定頁面)****
+    *   **API 函數：** `fetchUserById`, `updateUserProfile`, `changeUserPassword`
+    *   **連接點：**
+        *   **初始載入：** 在組件掛載時 (`onMounted` 或 `created`) 呼叫 `fetchUserById` 來獲取當前用戶的資料並填充表單。
+        *   **更新個人資料：** 個人資料表單提交事件 (`@submit`)。當用戶點擊「儲存」按鈕時，觸發 `updateUserProfile` 函數。
+        *   **修改密碼：** 修改密碼表單提交事件 (`@submit`)。當用戶點擊「修改密碼」按鈕時，觸發 `changeUserPassword` 函數。
+    *   **狀態：** 已完成.
+
+#### **階段二：服務管理 (管理員)**
+
+1.  **`src/views/admin/ServiceManagement.vue` (服務項目管理頁面)**
+    *   **API 函數：** `fetchServices`, `saveService`, `deleteServiceApi`, `updateServiceStatus`, `bulkServiceAction`
+    *   **連接點：**
+        *   **初始載入：** 在組件掛載時呼叫 `fetchServices` 來獲取所有服務列表。
+        *   **新增/編輯服務：** 新增/編輯服務模態框的提交事件。觸發 `saveService` 函數。
+        *   **刪除服務：** 服務列表中的「刪除」按鈕點擊事件。觸發 `deleteServiceApi` 函數。
+        *   **切換上架狀態：** 服務列表中的「上架/下架」開關或按鈕點擊事件。觸發 `updateServiceStatus` 函數。
+        *   **批次操作：** 批次操作下拉選單選擇後，點擊「執行」按鈕。觸發 `bulkServiceAction` 函數，並傳遞選定的操作類型和服務 ID 列表。
+    *   **狀態：** 已完成.
+
+2.  **`src/views/public/ServiceList.vue` (服務項目列表頁面)**
+    *   **API 函數：** `fetchServices`
+    *   **連接點：** 初始載入時呼叫 `fetchServices` 來顯示所有可用的服務。
+    *   **狀態：** 已完成.
+
+#### **階段三：預約管理**
+
+1.  **`src/views/customer/BookingFlow.vue` (預約流程頁面)**
+    *   **API 函數：** `fetchServices`, `saveBooking`
+    *   **連接點：**
+        *   **服務選擇：** 初始載入時呼叫 `fetchServices` 以顯示可供選擇的服務。
+        *   **提交預約：** 預約流程最後一步的「確認預約」按鈕點擊事件。觸發 `saveBooking` 函數。
+    *   **狀態：** 已完成。
+
+2.  **`src/views/customer/MyBookings.vue` (我的預約紀錄頁面)**
+    *   **API 函數：** `fetchBookings` (需要後端提供一個獲取當前用戶預約的端點，目前是 `GET /bookings/my`)
+    *   **連接點：** 初始載入時呼叫 `fetchBookings` 來顯示當前用戶的所有預約紀錄。
+    *   **取消預約：** 預約紀錄中的「取消預約」按鈕點擊事件。觸發 `deleteBooking` 函數。
+    *   **狀態：** 已完成。
+
+3.  **`src/views/admin/BookingCalendar.vue` (管理員預約行事曆頁面)**
+    *   **API 函數：** `fetchBookings`, `saveBooking`, `updateBookingStatus`, `deleteBooking`
+    *   **連接點：**
+        *   **初始載入：** 載入日曆時呼叫 `fetchBookings` 來顯示所有預約。
+        *   **新增預約：** 點擊日期或「新增預約」按鈕，提交新增預約表單。觸發 `saveBooking` 函數。
+        *   **更新預約狀態：** 預約詳情模態框中的狀態選擇器或按鈕。觸發 `updateBookingStatus` 函數。
+        *   **刪除預約：** 預約詳情模態框中的「刪除」按鈕。觸發 `deleteBooking` 函數。
+    *   **狀態：** 已完成.
+
+4.  **`src/views/admin/Dashboard.vue` (管理員儀表板頁面)**
+    *   **API 函數：** `fetchBookings` (用於獲取近期待處理訂單)
+    *   **連接點：** 初始載入時呼叫 `fetchBookings` 來顯示儀表板上的預約概覽。
+    *   **狀態：** 已完成.
+
+#### **階段四：客戶管理 (管理員)**
+
+1.  **`src/views/admin/ClientManagement.vue` (客戶名單管理頁面)**
+    *   **API 函數：** `fetchClients`, `fetchClientById`, `updateClient`
+    *   **連接點：**
+        *   **初始載入：** 在組件掛載時呼叫 `fetchClients` 來獲取所有客戶列表。
+        *   **查看客戶詳情：** 客戶列表中的「查看詳情」按鈕點擊事件。觸發 `fetchClientById` 函數。
+        *   **更新客戶資料：** 客戶詳情模態框中的表單提交事件。觸發 `updateClient` 函數。
+    *   **狀態：** 已完成.
+
+#### **階段五：營業設定 (管理員)**
+
+1.  **`src/views/admin/BusinessSettings.vue` (營業設定頁面)**
+    *   **API 函數：** `fetchBusinessSettings`, `saveBusinessSettings`, `addHoliday`, `removeHoliday`, `addUnavailableDateApi`, `removeUnavailableDateApi`, `addTimeSlotApi`, `removeTimeSlotApi`
+    *   **連接點：**
+        *   **初始載入：** 在組件掛載時呼叫 `fetchBusinessSettings` 來獲取所有營業設定。
+        *   **保存所有設定：** 頁面底部的「保存設定」按鈕點擊事件。觸發 `saveBusinessSettings` 函數，並傳遞所有營業設定的數據。
+        *   **新增假日：** 「新增假日」表單提交事件。觸發 `addHoliday` 函數。
+        *   **刪除假日：** 假日列表中的「刪除」按鈕點擊事件。觸發 `removeHoliday` 函數。
+        *   **新增不可預約日期：** 「新增不可預約日期」表單提交事件。觸發 `addUnavailableDateApi` 函數。
+        *   **刪除不可預約日期：** 不可預約日期列表中的「刪除」按鈕點擊事件。觸發 `removeUnavailableDateApi` 函數。
+        *   **新增可預約時間段：** 「新增時間段」表單提交事件。觸發 `addTimeSlotApi` 函數。
+        *   **刪除可預約時間段：** 可預約時間段列表中的「刪除」按鈕點擊事件。觸發 `removeTimeSlotApi` 函數。
+    *   **狀態：** 已完成.
+
+---
+
+**目前狀態：**
+
+*   前端專案 `sidep_app` 中的 `src/api/index.js` 檔案已完成修改，所有模擬的 `dataService` 呼叫都已替換為對後端 FastAPI API 的實際 HTTP 請求。
+*   `addTimeSlotApi` 和 `removeTimeSlotApi` 這些函數在前端仍有 `console.warn` 提示，因為後端目前沒有直接對應的 API 端點。
+
+**下一步：**
+
+1.  **啟動前端開發伺服器：** 在 `sidep_app` 資料夾中執行 `npm run dev`。
+2.  **啟動後端 FastAPI 應用程式：** 在 `sidep_backend` 資料夾中執行 `uvicorn main:app --reload`。
+3.  **測試前端應用程式：** 在瀏覽器中訪問前端應用程式，並測試其功能，例如註冊、登入、查看服務、預約等，看看它們是否能正確地與後端互動。

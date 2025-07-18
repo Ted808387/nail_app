@@ -8,6 +8,7 @@
 
 *   **A. 公共區 (Public Pages)**：無需登入即可訪問，主要用於品牌展示、服務介紹及引導新用戶。
 *   **B. 客戶專用區 (Customer Pages)**：需登入後訪問，提供客戶個人化的預約管理與帳號設定功能。
+
 *   **C. 管理員後台 (Admin Dashboard)**：專為管理員設計，提供全面的店舖營運數據監控與管理功能。
 
 ---
@@ -226,3 +227,45 @@
 *   **部署**: 考慮使用 Docker 進行容器化部署，方便環境管理和擴展。
 *   **測試**: 實施單元測試、整合測試和端到端測試，確保系統的穩定性和可靠性。
 *   **版本控制**: 使用 Git 進行版本控制，並遵循 Git Flow 或 Trunk-based Development 工作流。
+
+---
+
+## 前端開發進度
+
+### 階段一：前端 `dataService` 替換為真實 API 呼叫
+
+1.  **安裝 Axios：**
+    *   在 `sidep_app` 專案中安裝了 `axios` HTTP 客戶端函式庫。
+
+2.  **配置 Axios 實例與 JWT 攔截器：**
+    *   修改了 `src/api/index.js`，引入 `axios` 並配置 `apiClient` 實例。
+    *   設定後端 API 的基礎 URL (`http://127.0.0.1:8000`)。
+    *   添加請求攔截器，用於自動在每個受保護的請求中添加 JWT Token 到 `Authorization` 頭部。
+    *   添加響應攔截器，用於處理全局錯誤（例如 401 Unauthorized，自動跳轉到登入頁）。
+
+3.  **替換認證相關的 API 呼叫：**
+    *   修改了 `src/api/index.js` 中的 `registerUser` 和 `loginUser` 函數，使其呼叫後端 `/auth/register` 和 `/auth/login` 端點。
+    *   在 `loginUser` 成功後，將返回的 JWT Token 儲存到 `localStorage` 中。
+
+4.  **替換預約相關的 API 呼叫：**
+    *   修改了 `src/api/index.js` 中的 `fetchBookings`、`saveBooking` 和 `deleteBooking` 函數，使其呼叫後端 `/bookings` 端點。
+
+5.  **替換服務相關的 API 呼叫：**
+    *   修改了 `src/api/index.js` 中的 `fetchServices`、`saveService`、`updateServiceStatus`、`deleteServiceApi` 和 `bulkServiceAction` 函數，使其呼叫後端 `/services` 端點。
+
+6.  **替換客戶相關的 API 呼叫：**
+    *   修改了 `src/api/index.js` 中的 `fetchClients`、`fetchClientById` 和 `updateClient` 函數，使其呼叫後端 `/admin/clients` 端點。
+
+7.  **替換營業設定相關的 API 呼叫：**
+    *   修改了 `src/api/index.js` 中的 `fetchBusinessSettings`、`saveBusinessSettings`、`addHoliday`、`removeHoliday`、`addUnavailableDateApi` 和 `removeUnavailableDateApi` 函數，使其呼叫後端 `/admin/settings` 端點。
+
+**目前狀態：**
+
+*   前端專案 `sidep_app` 中的 `src/api/index.js` 檔案已完成修改，所有模擬的 `dataService` 呼叫都已替換為對後端 FastAPI API 的實際 HTTP 請求。
+*   `updateServiceStatus`、`bulkServiceAction`、`addTimeSlotApi`、`removeTimeSlotApi`、`fetchUserById`、`updateUserProfile` 和 `changeUserPassword` 這些函數在前端仍有 `console.warn` 提示，因為後端目前沒有直接對應的 API 端點。
+
+**下一步：**
+
+1.  **啟動前端開發伺服器：** 在 `sidep_app` 資料夾中執行 `npm run dev`。
+2.  **啟動後端 FastAPI 應用程式：** 在 `sidep_backend` 資料夾中執行 `uvicorn main:app --reload`。
+3.  **測試前端應用程式：** 在瀏覽器中訪問前端應用程式，並測試其功能，例如註冊、登入、查看服務、預約等，看看它們是否能正確地與後端互動。

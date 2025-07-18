@@ -48,10 +48,10 @@
             <input v-else type="email" v-model="selectedClient.email" class="p-2 border rounded-md w-full mt-1 text-sm sm:text-base">
           </p>
           <p class="text-soft-blue-700 text-base sm:text-lg"><strong>聯絡電話:</strong>
-            <span v-if="!isEditing">{{ selectedClient.phone }}</span>
-            <input v-else type="tel" v-model="selectedClient.phone" class="p-2 border rounded-md w-full mt-1 text-sm sm:text-base">
+            <span v-if="!isEditing">{{ selectedClient.phone_number }}</span>
+            <input v-else type="tel" v-model="selectedClient.phone_number" class="p-2 border rounded-md w-full mt-1 text-sm sm:text-base">
           </p>
-          <p class="text-soft-blue-700 text-base sm:text-lg"><strong>註冊日期:</strong> {{ selectedClient.registrationDate }}</p>
+          <p class="text-soft-blue-700 text-base sm:text-lg"><strong>註冊日期:</strong> {{ selectedClient.registration_date }}</p>
           <p class="text-soft-blue-700 text-base sm:text-lg"><strong>總預約次數:</strong> {{ selectedClient.totalBookings }}</p>
           <p class="text-soft-blue-700 text-base sm:text-lg"><strong>上次預約:</strong> {{ selectedClient.lastBookingDate }}</p>
 
@@ -123,7 +123,12 @@ function startEditing() {
 async function saveChanges() {
   isLoading.value = true;
   try {
-    const updatedClient = await updateClient(selectedClient.value); // 調用 API 函數
+    const updatedClientData = {
+      name: selectedClient.value.name,
+      phone_number: selectedClient.value.phone_number,
+      // email 不可修改，所以不傳遞
+    };
+    const updatedClient = await updateClient(selectedClient.value.id, updatedClientData); // 調用 API 函數
     // 更新 clients 列表中的對應客戶數據
     const index = clients.value.findIndex(c => c.id === updatedClient.id);
     if (index !== -1) {
@@ -157,26 +162,6 @@ function closeModal() {
   selectedClient.value = null;
   isEditing.value = false; // 關閉時重置編輯模式
   originalClient.value = null; // 關閉時清空原始數據
-}
-
-async function updateClientDetails() {
-  if (!selectedClient.value) return;
-  isLoading.value = true;
-  try {
-    const updatedClient = await updateClient(selectedClient.value); // 調用 API 函數
-    // 更新 clients 列表中的對應客戶數據
-    const index = clients.value.findIndex(c => c.id === updatedClient.id);
-    if (index !== -1) {
-      clients.value[index] = { ...updatedClient };
-    }
-    showSuccess('客戶資料已成功更新！');
-    closeModal();
-  } catch (error) {
-    console.error('更新客戶詳情失敗:', error);
-    showError('更新客戶詳情失敗，請稍後再試。');
-  } finally {
-    isLoading.value = false;
-  }
 }
 </script>
 

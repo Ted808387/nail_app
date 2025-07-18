@@ -65,7 +65,7 @@
 import { ref, computed } from 'vue';
 import { useRouter } from 'vue-router';
 import { useNotification } from '../../composables/useNotification';
-import { loadUsers, saveUsers } from '../../services/dataService';
+import { registerUser } from '../../api';
 import { useAuth } from '../../composables/useAuth'; // 引入 useAuth
 
 const router = useRouter();
@@ -159,38 +159,30 @@ async function handleSignUp() {
       email: email.value,
       phoneNumber: phoneNumber.value,
       password: password.value,
-      isAdmin: isAdmin.value,
+      role: isAdmin.value ? 'admin' : 'customer',
     });
 
-    await new Promise(resolve => setTimeout(resolve, 1000)); // 模擬網路延遲
-
-    const users = loadUsers();
-    const existingUser = users.find(user => user.email === email.value);
-    if (existingUser) {
-      showError('此 Email 已被註冊。'); // 移除顯示 email
-      isLoading.value = false;
-      return;
-    }
-
-    const newUser = {
-      id: users.length > 0 ? Math.max(...users.map(u => u.id)) + 1 : 1,
+    const userData = {
       name: name.value,
       email: email.value,
-      phone: phoneNumber.value,
-      password: password.value, // 實際應用中應加密密碼
+      phone_number: phoneNumber.value,
+      password: password.value,
       role: isAdmin.value ? 'admin' : 'customer',
-      registrationDate: new Date().toISOString().split('T')[0],
     };
-    users.push(newUser);
-    saveUsers(users);
 
-    showSuccess('註冊成功！');
-    login(newUser.id, newUser.role); // 使用 useAuth 的 login 方法
+    const response = await registerUser(userData);
 
-    if (newUser.role === 'admin') {
-      router.push('/admin');
+    if (response && response.id) { // 假設成功註冊會返回用戶 ID
+      showSuccess('註冊成功！');
+      login(response.id, response.role); // 使用 useAuth 的 login 方法
+
+      if (response.role === 'admin') {
+        router.push('/admin');
+      } else {
+        router.push('/account/signin');
+      }
     } else {
-      router.push('/account/signin');
+      showError('註冊失敗，請檢查輸入資訊。');
     }
 
   } catch (error) {

@@ -87,15 +87,15 @@
 </template>
 
 <script setup>
-import { ref, reactive } from 'vue';
-import { useNotification } from '../../composables/useNotification'; // 引入 useNotification
+import { ref, reactive, onMounted } from 'vue';
+import { useNotification } from '../../composables/useNotification';
+import { fetchUserById, updateUserProfile, changeUserPassword } from '../../api';
 
-// 這裡僅為示意，實際應從後端獲取使用者資料
 const profile = ref({
-  name: '範例使用者',
-  email: 'user@example.com', // Email 通常不可修改
-  phone: '0912345678',
-  avatar: '' // 頭像 URL
+  name: '',
+  email: '',
+  phone: '',
+  avatar: ''
 });
 
 const password = reactive({
@@ -118,35 +118,29 @@ const avatarInput = ref(null); // 用於檔案輸入的引用
 const isLoading = ref(false); // 新增載入狀態
 const { showSuccess, showError } = useNotification(); // 使用通知組合式函數
 
-async function uploadAvatar() {
-  avatarInput.value.click(); // 觸發檔案選擇
-}
-
-async function handleAvatarChange(event) {
-  const file = event.target.files[0];
-  if (file) {
-    isLoading.value = true; // 開始載入
-    console.log('選取了頭像檔案:', file.name);
-    try {
-      // 這裡應呼叫後端 API 上傳檔案，並更新 profile.avatar
-      await new Promise(resolve => setTimeout(resolve, 1000)); // 模擬上傳延遲
-      profile.value.avatar = URL.createObjectURL(file); // 暫時顯示本地預覽
-      showSuccess('頭像上傳成功！');
-    } catch (error) {
-      console.error('頭像上傳失敗:', error);
-      showError('頭像上傳失敗，請稍後再試。');
-    } finally {
-      isLoading.value = false; // 結束載入
-    }
+onMounted(async () => {
+  isLoading.value = true;
+  try {
+    const userData = await fetchUserById();
+    profile.value.name = userData.name;
+    profile.value.email = userData.email;
+    profile.value.phone = userData.phone_number; // 注意這裡的欄位名稱對應後端
+  } catch (error) {
+    console.error('載入用戶資料失敗:', error);
+    showError('載入用戶資料失敗，請稍後再試。');
+  } finally {
+    isLoading.value = false;
   }
-}
+});
 
 async function updateProfile() {
   isLoading.value = true; // 開始載入
-  console.log('更新個人資料:', profile.value);
   try {
-    // 在此處加入呼叫後端 API 的邏輯
-    await new Promise(resolve => setTimeout(resolve, 1000)); // 模擬網路延遲
+    const updatedData = {
+      name: profile.value.name,
+      phone_number: profile.value.phone, // 注意這裡的欄位名稱對應後端
+    };
+    await updateUserProfile(updatedData);
     showSuccess('個人資料已儲存！');
   } catch (error) {
     console.error('更新個人資料失敗:', error);
@@ -161,9 +155,9 @@ function validatePassword() {
   passwordErrors.confirmNew = '';
   let isValid = true;
 
-  if (password.new.length < 8) {
-    passwordErrors.new = '新密碼至少需要 8 個字元。';
-    showError('新密碼至少需要 8 個字元。');
+  if (password.new.length < 6) { // 密碼長度驗證應與後端一致
+    passwordErrors.new = '新密碼至少需要 6 個字元。';
+    showError('新密碼至少需要 6 個字元。');
     isValid = false;
   } else if (!/[a-zA-Z]/.test(password.new) || !/\d/.test(password.new)) {
     passwordErrors.new = '新密碼必須包含字母和數字。';
@@ -186,10 +180,12 @@ async function changePassword() {
   }
 
   isLoading.value = true; // 開始載入
-  console.log('變更密碼:', { current: password.current, new: password.new });
   try {
-    // 在此處加入呼叫後端 API 的邏輯
-    await new Promise(resolve => setTimeout(resolve, 1000)); // 模擬成功
+    const passwordData = {
+      current_password: password.current,
+      new_password: password.new,
+    };
+    await changeUserPassword(passwordData);
     showSuccess('密碼已成功更新！');
     password.current = '';
     password.new = '';

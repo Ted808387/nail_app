@@ -1,319 +1,318 @@
 // src/api/index.js
-import * as dataService from '../services/dataService';
+import axios from 'axios';
+import { useAuth } from '../composables/useAuth'; // 假設 useAuth 提供了獲取 token 的方法
 
-// 模擬網路延遲
-const simulateDelay = (ms = 800) => new Promise(resolve => setTimeout(resolve, ms));
+const API_BASE_URL = 'http://127.0.0.1:8000'; // 後端 FastAPI 服務的地址
+
+const apiClient = axios.create({
+  baseURL: API_BASE_URL,
+  headers: {
+    'Content-Type': 'application/json',
+  },
+});
+
+// 請求攔截器：在每個請求中添加 JWT Token
+apiClient.interceptors.request.use(
+  (config) => {
+    const { currentUserId } = useAuth(); // 獲取當前用戶 ID
+    const token = localStorage.getItem(`token_${currentUserId.value}`); // 從 localStorage 獲取 token
+
+    if (token) {
+      config.headers.Authorization = `Bearer ${token}`;
+    }
+    return config;
+  },
+  (error) => {
+    return Promise.reject(error);
+  }
+);
+
+// 響應攔截器：處理全局錯誤，例如 401 Unauthorized
+apiClient.interceptors.response.use(
+  (response) => {
+    return response;
+  },
+  (error) => {
+    if (error.response && error.response.status === 401) {
+      // 處理 401 Unauthorized 錯誤，例如導向登入頁面
+      const { logout } = useAuth();
+      logout(); // 清除認證狀態
+      // 可以添加路由跳轉到登入頁面的邏輯
+      // router.push('/account/signin');
+    }
+    return Promise.reject(error);
+  }
+);
+
+// 模擬網路延遲 (不再需要，因為是真實 API 呼叫)
+// const simulateDelay = (ms = 800) => new Promise(resolve => setTimeout(resolve, ms));
 
 // --- 預約 API ---
 export const fetchBookings = async () => {
-  await simulateDelay();
-  return dataService.loadBookings();
+  try {
+    const { isAdmin } = useAuth(); // 獲取 isAdmin 狀態
+    let url = '/bookings/my'; // 預設為普通用戶的預約
+    if (isAdmin.value) {
+      url = '/bookings/'; // 如果是管理員，獲取所有預約
+    }
+    const response = await apiClient.get(url);
+    return response.data;
+  } catch (error) {
+    console.error('Error fetching bookings:', error);
+    throw error;
+  }
 };
 
 export const saveBooking = async (booking) => {
-  await simulateDelay();
-  const bookings = dataService.loadBookings();
-  if (booking.id) {
-    // Update existing booking
-    const index = bookings.findIndex(b => b.id === booking.id);
-    if (index !== -1) {
-      bookings[index] = { ...booking };
-    } else {
-      throw new Error('Booking not found for update.');
-    }
-  } else {
-    // Add new booking
-    // Helper to generate a random alphanumeric string
-    const generateRandomAlphanumeric = (length) => {
-      const characters = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
-      let result = '';
-      for (let i = 0; i < length; i++) {
-        result += characters.charAt(Math.floor(Math.random() * characters.length));
-      }
-      return result;
-    };
-
-    let newId;
-    let isUnique = false;
-    while (!isUnique) {
-      newId = 'BOOK' + generateRandomAlphanumeric(6); // BOOK + 6 random chars
-      isUnique = !bookings.some(b => b.id === newId);
-    }
-    booking.id = newId;
-    bookings.push(booking);
+  try {
+    const response = await apiClient.post('/bookings/', booking);
+    return response.data;
+  } catch (error) {
+    console.error('Error saving booking:', error);
+    throw error;
   }
-  dataService.saveBookings(bookings);
-  return booking;
+};
+
+export const updateBooking = async (bookingId, bookingData) => {
+  try {
+    const response = await apiClient.put(`/bookings/${bookingId}`, bookingData);
+    return response.data;
+  } catch (error) {
+    console.error('Error updating booking:', error);
+    throw error;
+  }
 };
 
 export const deleteBooking = async (id) => {
-  await simulateDelay();
-  let bookings = dataService.loadBookings();
-  const initialLength = bookings.length;
-  bookings = bookings.filter(b => b.id !== id);
-  dataService.saveBookings(bookings);
-  if (bookings.length === initialLength) {
-    throw new Error('Booking not found for deletion.');
+  try {
+    await apiClient.delete(`/bookings/${id}`);
+    return { success: true };
+  } catch (error) {
+    console.error('Error deleting booking:', error);
+    throw error;
   }
-  return { success: true };
 };
 
 // --- 服務 API ---
 export const fetchServices = async () => {
-  await simulateDelay();
-  return dataService.loadServices();
+  try {
+    const response = await apiClient.get('/services/');
+    return response.data;
+  } catch (error) {
+    console.error('Error fetching services:', error);
+    throw error;
+  }
 };
 
 export const saveService = async (service) => {
-  await simulateDelay();
-  const services = dataService.loadServices();
-  // Ensure minDuration and maxDuration are numbers
-  service.minDuration = Number(service.minDuration);
-  service.maxDuration = Number(service.maxDuration);
-
-  if (service.id) {
-    const index = services.findIndex(s => s.id === service.id);
-    if (index !== -1) {
-      services[index] = { ...service };
+  try {
+    if (service.id) {
+      const response = await apiClient.put(`/services/${service.id}`, service);
+      return response.data;
     } else {
-      throw new Error('Service not found for update.');
+      const response = await apiClient.post('/services/', service);
+      return response.data;
     }
-  } else {
-    service.id = services.length > 0 ? Math.max(...services.map(s => s.id)) + 1 : 1;
-    services.push(service);
+  } catch (error) {
+    console.error('Error saving service:', error);
+    throw error;
   }
-  dataService.saveServices(services);
-  return service;
 };
 
 export const updateServiceStatus = async (serviceId, isActive) => {
-  await simulateDelay();
-  const services = dataService.loadServices();
-  const service = services.find(s => s.id === serviceId);
-  if (service) {
-    service.isActive = isActive;
-    dataService.saveServices(services);
-    return service;
-  } else {
-    throw new Error('Service not found.');
+  try {
+    const response = await apiClient.patch(`/services/${serviceId}/status`, { is_active: isActive });
+    return response.data;
+  } catch (error) {
+    console.error('Error updating service status:', error);
+    throw error;
   }
 };
 
 export const deleteServiceApi = async (id) => { // Renamed to avoid conflict with component function
-  await simulateDelay();
-  let services = dataService.loadServices();
-  const initialLength = services.length;
-  services = services.filter(s => s.id !== id);
-  dataService.saveServices(services);
-  if (services.length === initialLength) {
-    throw new Error('Service not found for deletion.');
+  try {
+    await apiClient.delete(`/services/${id}`);
+    return { success: true };
+  } catch (error) {
+    console.error('Error deleting service:', error);
+    throw error;
   }
-  return { success: true };
 };
 
 export const bulkServiceAction = async (action, serviceIds) => {
-  await simulateDelay(1200); // Longer delay for bulk action
-  const services = dataService.loadServices();
-  serviceIds.forEach(id => {
-    const service = services.find(s => s.id === id);
-    if (service) {
-      if (action === 'activate') {
-        service.isActive = true;
-      } else if (action === 'deactivate') {
-        service.isActive = false;
-      } else if (action === 'delete') {
-        // Mark for deletion, then filter outside loop
-      }
-    }
-  });
-  let updatedServices = services;
-  if (action === 'delete') {
-    updatedServices = services.filter(s => !serviceIds.includes(s.id));
+  try {
+    const response = await apiClient.post('/services/bulk-action', { action, service_ids: serviceIds });
+    return response.data;
+  } catch (error) {
+    console.error('Error performing bulk service action:', error);
+    throw error;
   }
-  dataService.saveServices(updatedServices);
-  return { success: true, message: `Selected services ${action}d successfully.` };
 };
 
 
 // --- 客戶 API ---
 export const fetchClients = async () => {
-  await simulateDelay();
-  return dataService.loadClients();
+  try {
+    const response = await apiClient.get('/admin/clients/');
+    return response.data;
+  } catch (error) {
+    console.error('Error fetching clients:', error);
+    throw error;
+  }
 };
 
 export const fetchClientById = async (id) => {
-  await simulateDelay();
-  const clients = dataService.loadClients();
-  const client = clients.find(c => c.id === id);
-  if (!client) {
-    throw new Error('Client not found.');
+  try {
+    const response = await apiClient.get(`/admin/clients/${id}`);
+    return response.data;
+  } catch (error) {
+    console.error('Error fetching client by ID:', error);
+    throw error;
   }
-  return client;
 };
 
 export const updateClient = async (client) => {
-  await simulateDelay();
-  const clients = dataService.loadClients();
-  const index = clients.findIndex(c => c.id === client.id);
-  if (index !== -1) {
-    clients[index] = { ...client };
-    dataService.saveClients(clients);
-    return client;
-  } else {
-    throw new Error('Client not found for update.');
+  try {
+    const response = await apiClient.put(`/admin/clients/${client.id}`, client);
+    return response.data;
+  } catch (error) {
+    console.error('Error updating client:', error);
+    throw error;
   }
 };
 
 // --- 營業設定 API ---
 export const fetchBusinessSettings = async () => {
-  await simulateDelay();
-  return {
-    businessHours: dataService.loadBusinessHours(),
-    holidays: dataService.loadHolidays(),
-    unavailableDates: dataService.loadUnavailableDates(),
-    bookableTimeSlots: dataService.loadBookableTimeSlots(),
-  };
+  try {
+    const response = await apiClient.get('/admin/settings/');
+    return response.data;
+  } catch (error) {
+    console.error('Error fetching business settings:', error);
+    throw error;
+  }
 };
 
 export const saveBusinessSettings = async (settings) => {
-  await simulateDelay();
-  dataService.saveBusinessHours(settings.businessHours);
-  dataService.saveHolidays(settings.holidays);
-  dataService.saveUnavailableDates(settings.unavailableDates);
-  dataService.saveBookableTimeSlots(settings.bookableTimeSlots);
-  return { success: true };
+  try {
+    const response = await apiClient.put('/admin/settings/', settings);
+    return response.data;
+  } catch (error) {
+    console.error('Error saving business settings:', error);
+    throw error;
+  }
 };
 
-export const addHoliday = async (holidayDate) => {
-  await simulateDelay();
-  const holidays = dataService.loadHolidays();
-  if (holidays.includes(holidayDate)) {
-    throw new Error('Holiday already exists.');
+export const addHoliday = async (holidayData) => {
+  try {
+    const response = await apiClient.post('/admin/settings/holidays', holidayData);
+    return response.data;
+  } catch (error) {
+    console.error('Error adding holiday:', error);
+    throw error;
   }
-  holidays.push(holidayDate);
-  dataService.saveHolidays(holidays);
-  return { success: true, holiday: holidayDate };
 };
 
 export const removeHoliday = async (holidayDate) => {
-  await simulateDelay();
-  let holidays = dataService.loadHolidays();
-  const initialLength = holidays.length;
-  holidays = holidays.filter(h => h !== holidayDate);
-  dataService.saveHolidays(holidays);
-  if (holidays.length === initialLength) {
-    throw new Error('Holiday not found for removal.');
+  try {
+    await apiClient.delete(`/admin/settings/holidays/${holidayDate}`);
+    return { success: true };
+  } catch (error) {
+    console.error('Error removing holiday:', error);
+    throw error;
   }
-  return { success: true };
 };
 
-export const addUnavailableDateApi = async (date) => {
-  await simulateDelay();
-  const unavailableDates = dataService.loadUnavailableDates();
-  if (unavailableDates.includes(date)) {
-    throw new Error('Unavailable date already exists.');
+export const addUnavailableDateApi = async (unavailableDateData) => {
+  try {
+    const response = await apiClient.post('/admin/settings/unavailable-dates', unavailableDateData);
+    return response.data;
+  } catch (error) {
+    console.error('Error adding unavailable date:', error);
+    throw error;
   }
-  unavailableDates.push(date);
-  dataService.saveUnavailableDates(unavailableDates);
-  return { success: true, date };
 };
 
-export const removeUnavailableDateApi = async (date) => {
-  await simulateDelay();
-  let unavailableDates = dataService.loadUnavailableDates();
-  const initialLength = unavailableDates.length;
-  unavailableDates = unavailableDates.filter(d => d !== date);
-  dataService.saveUnavailableDates(unavailableDates);
-  if (unavailableDates.length === initialLength) {
-    throw new Error('Unavailable date not found for removal.');
+export const removeUnavailableDateApi = async (unavailableDate) => {
+  try {
+    await apiClient.delete(`/admin/settings/unavailable-dates/${unavailableDate}`);
+    return { success: true };
+  } catch (error) {
+    console.error('Error removing unavailable date:', error);
+    throw error;
   }
-  return { success: true };
 };
 
 export const addTimeSlotApi = async (slot) => {
-  await simulateDelay();
-  const bookableTimeSlots = dataService.loadBookableTimeSlots();
-  if (bookableTimeSlots.some(s => s.start === slot.start && s.end === slot.end)) {
-    throw new Error('Time slot already exists.');
+  try {
+    const response = await apiClient.post('/admin/settings/time-slots', slot);
+    return response.data;
+  } catch (error) {
+    console.error('Error adding time slot:', error);
+    throw error;
   }
-  bookableTimeSlots.push(slot);
-  dataService.saveBookableTimeSlots(bookableTimeSlots);
-  return { success: true, slot };
 };
 
-export const removeTimeSlotApi = async (slot) => {
-  await simulateDelay();
-  let bookableTimeSlots = dataService.loadBookableTimeSlots();
-  const initialLength = bookableTimeSlots.length;
-  bookableTimeSlots = bookableTimeSlots.filter(s => !(s.start === slot.start && s.end === slot.end));
-  dataService.saveBookableTimeSlots(bookableTimeSlots);
-  if (bookableTimeSlots.length === initialLength) {
-    throw new Error('Time slot not found for removal.');
+export const removeTimeSlotApi = async (slotId) => {
+  try {
+    await apiClient.delete(`/admin/settings/time-slots/${slotId}`);
+    return { success: true };
+  } catch (error) {
+    console.error('Error removing time slot:', error);
+    throw error;
   }
-  return { success: true };
 };
 
 // --- 用戶認證 API ---
 export const registerUser = async (userData) => {
-  await simulateDelay();
-  const users = dataService.loadUsers();
-  if (users.some(user => user.email === userData.email)) {
-    throw new Error('Email already registered.');
+  try {
+    const response = await apiClient.post('/auth/register', userData);
+    return response.data;
+  } catch (error) {
+    console.error('Error registering user:', error);
+    throw error;
   }
-  const newUser = {
-    id: users.length > 0 ? Math.max(...users.map(u => u.id)) + 1 : 1,
-    ...userData,
-    registrationDate: new Date().toISOString().split('T')[0],
-  };
-  users.push(newUser);
-  dataService.saveUsers(users);
-  return newUser;
 };
 
 export const loginUser = async (email, password) => {
-  await simulateDelay();
-  const users = dataService.loadUsers();
-  const user = users.find(u => u.email === email && u.password === password);
-  if (!user) {
-    throw new Error('Invalid email or password.');
+  try {
+    const response = await apiClient.post('/auth/login', { email, password });
+    const { access_token, user_id, user_role } = response.data;
+    // 將 token 儲存到 localStorage，以 user_id 為 key
+    localStorage.setItem(`token_${user_id}`, access_token);
+    return { user_id, user_role };
+  } catch (error) {
+    console.error('Error logging in user:', error);
+    throw error;
   }
-  return user;
 };
 
 export const fetchUserById = async (id) => {
-  await simulateDelay();
-  const users = dataService.loadUsers();
-  const user = users.find(u => u.id === id);
-  if (!user) {
-    throw new Error('User not found.');
+  // This function now gets the current user's data, so the 'id' parameter is no longer needed.
+  try {
+    const response = await apiClient.get('/users/me');
+    return response.data;
+  } catch (error) {
+    console.error('Error fetching user data:', error);
+    throw error;
   }
-  return user;
 };
 
 export const updateUserProfile = async (userProfile) => {
-  await simulateDelay();
-  const users = dataService.loadUsers();
-  const index = users.findIndex(u => u.id === userProfile.id);
-  if (index !== -1) {
-    users[index] = { ...users[index], ...userProfile }; // Merge updated fields
-    dataService.saveUsers(users);
-    return users[index];
-  } else {
-    throw new Error('User not found for update.');
+  try {
+    const response = await apiClient.put('/users/me', userProfile);
+    return response.data;
+  } catch (error) {
+    console.error('Error updating user profile:', error);
+    throw error;
   }
 };
 
-export const changeUserPassword = async (userId, currentPassword, newPassword) => {
-  await simulateDelay();
-  const users = dataService.loadUsers();
-  const user = users.find(u => u.id === userId);
-  if (!user) {
-    throw new Error('User not found.');
+export const changeUserPassword = async (passwords) => {
+  try {
+    const response = await apiClient.post('/users/me/change-password', passwords);
+    return response.data;
+  } catch (error) {
+    console.error('Error changing password:', error);
+    throw error;
   }
-  if (user.password !== currentPassword) {
-    throw new Error('Current password incorrect.');
-  }
-  user.password = newPassword; // In real app, hash new password
-  dataService.saveUsers(users);
-  return { success: true };
 };

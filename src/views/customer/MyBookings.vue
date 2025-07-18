@@ -93,7 +93,7 @@
 <script setup>
 import { ref, computed, onMounted } from 'vue';
 import { useNotification } from '../../composables/useNotification';
-import { fetchBookings, saveBooking } from '../../api'; // 引入 API 函數
+import { fetchBookings, saveBooking, updateBooking, updateBookingStatus } from '../../api'; // 引入 API 函數
 import { useAuth } from '../../composables/useAuth'; // 引入 useAuth
 
 const { isAdmin } = useAuth(); // 使用 useAuth
@@ -178,21 +178,15 @@ function startEditing() {
 async function saveChanges() {
   isLoading.value = true;
   try {
-    // 模擬 API 呼叫
-    await new Promise(resolve => setTimeout(resolve, 500));
-
-    const index = bookings.value.findIndex(b => b.id === selectedBooking.value.id);
-    if (index !== -1) {
-      // 只更新備註欄位
-      const updatedBooking = { ...bookings.value[index], notes: selectedBooking.value.notes };
-      await saveBooking(updatedBooking); // 調用 API 函數
-      bookings.value[index] = updatedBooking; // 更新本地狀態
-      showSuccess('預約備註已成功更新！');
-      isEditing.value = false;
-      originalBooking.value = null; // 清空原始數據
-    } else {
-      showError('更新失敗，找不到該預約。');
-    }
+    const updatedBookingData = {
+      notes: selectedBooking.value.notes,
+    };
+    await updateBooking(selectedBooking.value.id, updatedBookingData); // 調用新的 updateBooking API
+    showSuccess('預約備註已成功更新！');
+    isEditing.value = false;
+    originalBooking.value = null; // 清空原始數據
+    // 重新載入預約數據以確保最新狀態
+    bookings.value = await fetchBookings();
   } catch (error) {
     console.error('儲存變更失敗:', error);
     showError('儲存變更失敗，請稍後再試。');
@@ -217,20 +211,16 @@ async function cancelBooking(bookingId) {
   isLoading.value = true; // 開始載入
   console.log('嘗試取消預約:', bookingId);
   try {
-    const index = bookings.value.findIndex(b => b.id === bookingId);
-    if (index !== -1) {
-      const updatedBooking = { ...bookings.value[index], status: 'cancelled' };
-      await saveBooking(updatedBooking); // 調用 API 函數
-      bookings.value[index].status = 'cancelled'; // 更新本地狀態
-      showSuccess('預約已成功取消！'); // 使用通知
-    } else {
-      showError('取消失敗，找不到該預約。'); // 使用通知
-    }
+    await updateBookingStatus(bookingId, 'cancelled'); // 調用 updateBookingStatus API
+    showSuccess('預約已成功取消！'); // 使用通知
+    // 重新載入預約數據以確保最新狀態
+    bookings.value = await fetchBookings();
+    closeModal(); // 取消後關閉模態框
   } catch (error) {
     console.error('取消預約失敗:', error);
     showError('取消預約失敗，請稍後再試。'); // 使用通知
   } finally {
-    isLoading.value = false; // 結束載入
+    isLoading.value = false;
   }
 }
 </script>

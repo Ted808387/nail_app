@@ -125,10 +125,21 @@ onMounted(async () => {
   isLoading.value = true;
   try {
     const settings = await fetchBusinessSettings();
-    businessHours.value = settings.businessHours;
-    holidays.value = settings.holidays;
-    unavailableDates.value = settings.unavailableDates || []; // 載入不可預約日期
-    bookableTimeSlots.value = settings.bookableTimeSlots || []; // 載入可預約時間段落
+    // 確保從後端載入的數據結構與前端期望的匹配
+    businessHours.value = settings.business_hours.map(day => ({
+      id: day.id,
+      name: day.name, // 假設後端返回的 business_hours 包含 name 屬性
+      open: day.open_time,
+      close: day.close_time,
+      isClosed: day.is_closed // 假設後端返回的 business_hours 包含 is_closed 屬性
+    }));
+    holidays.value = settings.holidays.map(h => h.date); // 假設後端返回的 holidays 是物件陣列
+    unavailableDates.value = settings.unavailable_dates.map(ud => ud.date) || [];
+    bookableTimeSlots.value = settings.bookable_time_slots.map(slot => ({
+      id: slot.id,
+      start: slot.start_time,
+      end: slot.end_time
+    })) || [];
   } catch (error) {
     console.error('載入營業設定失敗:', error);
     showError('載入營業設定失敗，請稍後再試。');
@@ -142,15 +153,16 @@ async function addHoliday() {
     showError('請選擇要新增的公休日日期。');
     return;
   }
-  if (holidays.value.includes(newHolidayDate.value)) {
+  // 檢查是否已存在，這裡需要從後端返回的 holidays 數據中檢查
+  if (holidays.value.some(h => h.date === newHolidayDate.value)) {
     showInfo('該日期已存在於公休日列表中。');
     return;
   }
 
   isLoading.value = true; // 開始載入
   try {
-    await addHolidayApi(newHolidayDate.value); // 調用 API
-    holidays.value.push(newHolidayDate.value);
+    const addedHoliday = await addHolidayApi({ date: newHolidayDate.value }); // 調用 API，傳遞物件
+    holidays.value.push(addedHoliday); // 將返回的完整物件加入列表
     newHolidayDate.value = '';
     showSuccess('公休日已成功新增！');
   } catch (error) {
@@ -165,7 +177,7 @@ async function removeHoliday(index) {
   if (confirm('您確定要移除此公休日嗎？')) {
     isLoading.value = true; // 開始載入
     try {
-      await removeHolidayApi(holidays.value[index]); // 調用 API
+      await removeHolidayApi(holidays.value[index].date); // 調用 API，傳遞日期字串
       holidays.value.splice(index, 1);
       showSuccess('公休日已成功移除！');
     } catch (error) {
@@ -182,15 +194,16 @@ async function addUnavailableDate() {
     showError('請選擇要新增的不可預約日期。');
     return;
   }
-  if (unavailableDates.value.includes(newUnavailableDate.value)) {
+  // 檢查是否已存在，這裡需要從後端返回的 unavailableDates 數據中檢查
+  if (unavailableDates.value.some(ud => ud.date === newUnavailableDate.value)) {
     showInfo('該日期已存在於不可預約列表中。');
     return;
   }
 
   isLoading.value = true;
   try {
-    await addUnavailableDateApi(newUnavailableDate.value); // 調用 API
-    unavailableDates.value.push(newUnavailableDate.value);
+    const addedUnavailableDate = await addUnavailableDateApi({ date: newUnavailableDate.value }); // 調用 API，傳遞物件
+    unavailableDates.value.push(addedUnavailableDate); // 將返回的完整物件加入列表
     newUnavailableDate.value = '';
     showSuccess('不可預約日期已成功新增！');
   } catch (error) {
@@ -205,7 +218,7 @@ async function removeUnavailableDate(index) {
   if (confirm('您確定要移除此不可預約日期嗎？')) {
     isLoading.value = true;
     try {
-      await removeUnavailableDateApi(unavailableDates.value[index]); // 調用 API
+      await removeUnavailableDateApi(unavailableDates.value[index].date); // 調用 API，傳遞日期字串
       unavailableDates.value.splice(index, 1);
       showSuccess('不可預約日期已成功移除！');
     } catch (error) {
@@ -226,16 +239,16 @@ async function addTimeSlot() {
     showError('開始時間必須早於結束時間。');
     return;
   }
-  const newSlot = { start: newSlotStartTime.value, end: newSlotEndTime.value };
-  if (bookableTimeSlots.value.some(slot => slot.start === newSlot.start && slot.end === newSlot.end)) {
+  const newSlot = { start_time: newSlotStartTime.value, end_time: newSlotEndTime.value }; // 調整為後端期望的屬性名稱
+  if (bookableTimeSlots.value.some(slot => slot.start === newSlot.start_time && slot.end === newSlot.end_time)) {
     showInfo('該時間段已存在。');
     return;
   }
 
   isLoading.value = true;
   try {
-    await addTimeSlotApi(newSlot); // 調用 API
-    bookableTimeSlots.value.push(newSlot);
+    const addedTimeSlot = await addTimeSlotApi(newSlot); // 調用 API
+    bookableTimeSlots.value.push(addedTimeSlot); // 將返回的完整物件加入列表
     // 排序時間段
     bookableTimeSlots.value.sort((a, b) => a.start.localeCompare(b.start));
     newSlotStartTime.value = '';
@@ -253,7 +266,7 @@ async function removeTimeSlot(index) {
   if (confirm('您確定要移除此時間段嗎？')) {
     isLoading.value = true;
     try {
-      await removeTimeSlotApi(bookableTimeSlots.value[index]); // 調用 API
+      await removeTimeSlotApi(bookableTimeSlots.value[index].id); // 調用 API，傳遞 ID
       bookableTimeSlots.value.splice(index, 1);
       showSuccess('時間段已成功移除！');
     } catch (error) {
@@ -267,9 +280,24 @@ async function removeTimeSlot(index) {
 
 async function saveSettings() {
   isLoading.value = true; // 開始載入
-  console.log('儲存營業設定:', { businessHours: businessHours.value, holidays: holidays.value, unavailableDates: unavailableDates.value, bookableTimeSlots: bookableTimeSlots.value });
   try {
-    await saveBusinessSettingsApi({ businessHours: businessHours.value, holidays: holidays.value, unavailableDates: unavailableDates.value, bookableTimeSlots: bookableTimeSlots.value }); // 調用 API
+    const settingsToSave = {
+      business_hours: businessHours.value.map(day => ({
+        id: day.id,
+        day_of_week: day.id, // 假設 id 就是 day_of_week
+        open_time: day.open,
+        close_time: day.close,
+        is_closed: day.isClosed
+      })),
+      holidays: holidays.value.map(h => ({ date: h.date, description: h.description || null })),
+      unavailable_dates: unavailableDates.value.map(ud => ({ date: ud.date, reason: ud.reason || null })),
+      bookable_time_slots: bookableTimeSlots.value.map(slot => ({
+        id: slot.id,
+        start_time: slot.start,
+        end_time: slot.end
+      }))
+    };
+    await saveBusinessSettingsApi(settingsToSave); // 調用 API
     showSuccess('營業設定已成功儲存！');
   } catch (error) {
     console.error('儲存營業設定失敗:', error);
