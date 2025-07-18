@@ -61,17 +61,17 @@
                 <input type="checkbox" v-model="selectedServices" :value="service.id">
               </td>
               <td class="py-2 sm:py-3 px-3 sm:px-4">
-                <img :src="service.imageUrl || 'https://via.placeholder.com/50?text=Service'" :alt="service.name"
+                <img :src="service.image_url || 'https://via.placeholder.com/50?text=Service'" :alt="service.name"
                   class="w-10 h-10 sm:w-12 sm:h-12 object-cover rounded-md">
               </td>
               <td class="py-2 sm:py-3 px-3 sm:px-4 text-soft-blue-700 text-xs sm:text-sm">{{ service.name }}</td>
               <td class="py-2 sm:py-3 px-3 sm:px-4 text-soft-blue-700 text-xs sm:text-sm">{{ service.category }}</td>
               <td class="py-2 sm:py-3 px-3 sm:px-4 text-soft-blue-700 text-xs sm:text-sm">NT$ {{ service.price }}</td>
-              <td class="py-2 sm:py-3 px-3 sm:px-4 text-soft-blue-700 text-xs sm:text-sm">{{ service.minDuration }} - {{ service.maxDuration }}</td>
+              <td class="py-2 sm:py-3 px-3 sm:px-4 text-soft-blue-700 text-xs sm:text-sm">{{ service.min_duration }} - {{ service.max_duration }}</td>
               <td class="py-2 sm:py-3 px-3 sm:px-4">
-                <span :class="[service.isActive ? 'bg-green-200 text-green-800' : 'bg-red-200 text-red-800']"
+                <span :class="[service.is_active ? 'bg-green-200 text-green-800' : 'bg-red-200 text-red-800']"
                   class="px-2 py-0.5 rounded-full text-xs font-medium">
-                  {{ service.isActive ? '上架中' : '已下架' }}
+                  {{ service.is_active ? '上架中' : '已下架' }}
                 </span>
               </td>
               <td class="py-2 sm:py-3 px-3 sm:px-4 flex flex-col sm:flex-row space-y-1 sm:space-y-0 sm:space-x-2">
@@ -80,9 +80,9 @@
                   編輯
                 </button>
                 <button @click="toggleStatus(service)" :disabled="isLoading"
-                  :class="[service.isActive ? 'bg-yellow-500 hover:bg-yellow-600' : 'bg-green-500 hover:bg-green-600']"
+                  :class="[service.is_active ? 'bg-yellow-500 hover:bg-yellow-600' : 'bg-green-500 hover:bg-green-600']"
                   class="px-3 py-1 text-white rounded-full text-xs transition duration-300 disabled:opacity-50 disabled:cursor-not-allowed">
-                  {{ service.isActive ? '下架' : '上架' }}
+                  {{ service.is_active ? '下架' : '上架' }}
                 </button>
               </td>
             </tr>
@@ -129,20 +129,20 @@
             <div class="mb-3 sm:mb-4 flex space-x-4">
               <div class="flex-1">
                 <label for="service-min-duration" class="block text-soft-blue-700 text-sm sm:text-base font-bold mb-2">最短時長 (分鐘) <span class="text-red-500">*</span></label>
-                <input type="number" id="service-min-duration" v-model="currentService.minDuration" placeholder="最短時長" required
+                <input type="number" id="service-min-duration" v-model="currentService.min_duration" placeholder="最短時長" required
                   class="shadow appearance-none border border-soft-blue-300 rounded-xl w-full py-2 sm:py-3 px-3 sm:px-4 text-gray-700 leading-tight focus:outline-none focus:shadow-outline focus:border-soft-blue-400">
               </div>
               <div class="flex-1">
                 <label for="service-max-duration" class="block text-soft-blue-700 text-sm sm:text-base font-bold mb-2">最長時長 (分鐘) <span class="text-red-500">*</span></label>
-                <input type="number" id="service-max-duration" v-model="currentService.maxDuration" placeholder="最長時長" required
+                <input type="number" id="service-max-duration" v-model="currentService.max_duration" placeholder="最長時長" required
                   class="shadow appearance-none border border-soft-blue-300 rounded-xl w-full py-2 sm:py-3 px-3 sm:px-4 text-gray-700 leading-tight focus:outline-none focus:shadow-outline focus:border-soft-blue-400">
               </div>
             </div>
             <div class="mb-5 sm:mb-6">
               <label class="block text-soft-blue-700 text-sm sm:text-base font-bold mb-2">服務圖片</label>
               <div class="mt-2 flex items-center space-x-4">
-                <img :src="currentService.imageUrl || 'https://via.placeholder.com/100?text=Preview'" 
-                     alt="Service Image Preview" 
+                <img :src="currentService.image_url || 'https://via.placeholder.com/100?text=Preview'"
+                     alt="Service Image Preview"
                      class="w-24 h-24 object-cover rounded-lg border border-soft-blue-200">
                 <input type="file" ref="imageInput" @change="handleImageUpload" accept="image/*" class="hidden">
                 <button type="button" @click="triggerImageUpload" :disabled="isLoading"
@@ -152,7 +152,7 @@
               </div>
             </div>
             <div class="mb-5 sm:mb-6 flex items-center">
-              <input type="checkbox" id="service-active" v-model="currentService.isActive" class="mr-2 leading-tight h-4 w-4 text-soft-blue-600 focus:ring-soft-blue-500 border-gray-300 rounded">
+              <input type="checkbox" id="service-active" v-model="currentService.is_active" class="mr-2 leading-tight h-4 w-4 text-soft-blue-600 focus:ring-soft-blue-500 border-gray-300 rounded">
               <label for="service-active" class="text-soft-blue-700 text-sm sm:text-base">上架</label>
             </div>
             <button type="submit" :disabled="isLoading"
@@ -199,7 +199,7 @@ onMounted(async () => {
 const filteredServices = computed(() => {
   return services.value.filter(service => {
     const categoryMatch = !filterCategory.value || service.category === filterCategory.value;
-    const statusMatch = filterStatus.value === '' || String(service.isActive) === filterStatus.value;
+    const statusMatch = filterStatus.value === '' || String(service.is_active) === filterStatus.value;
     return categoryMatch && statusMatch;
   });
 });
@@ -217,7 +217,7 @@ function toggleSelectAll() {
 }
 
 function showModal(service) {
-  currentService.value = service ? { ...service } : { id: null, name: '', description: '', price: null, minDuration: null, maxDuration: null, category: '', isActive: true, imageUrl: '' };
+  currentService.value = service ? { ...service } : { id: null, name: '', description: '', price: null, min_duration: null, max_duration: null, category: '', is_active: true, image_url: '' };
   isModalOpen.value = true;
 }
 
@@ -227,19 +227,31 @@ function closeModal() {
 }
 
 async function saveService() { // 本地函數
-  if (!currentService.value.name || !currentService.value.price || currentService.value.minDuration === null || currentService.value.maxDuration === null) {
+  if (!currentService.value.name || !currentService.value.price || currentService.value.min_duration === null || currentService.value.max_duration === null) {
     showError('請填寫服務名稱、價格、最短時長和最長時長。');
     return;
   }
 
-  if (currentService.value.minDuration > currentService.value.maxDuration) {
+  if (currentService.value.min_duration > currentService.value.max_duration) {
     showError('最短時長不能大於最長時長。');
     return;
   }
 
   isLoading.value = true; // 開始載入
   try {
-    const savedService = await apiSaveService(currentService.value); // 調用 API 函數 apiSaveService
+    const serviceData = {
+      name: currentService.value.name,
+      description: currentService.value.description,
+      price: currentService.value.price,
+      min_duration: currentService.value.min_duration, // 轉換為 snake_case
+      max_duration: currentService.value.max_duration, // 轉換為 snake_case
+      is_active: currentService.value.is_active, // 轉換為 snake_case
+      category: currentService.value.category,
+      image_url: currentService.value.image_url,
+      ...(currentService.value.id && { id: currentService.value.id }) // 分辨編輯與新增
+    };
+
+    const savedService = await apiSaveService(serviceData); // 調用 API 函數 apiSaveService
 
     if (currentService.value.id) {
       // 編輯現有服務
@@ -265,9 +277,9 @@ async function saveService() { // 本地函數
 async function toggleStatus(service) {
   isLoading.value = true; // 開始載入
   try {
-    await updateServiceStatus(service.id, !service.isActive); // 調用 API 函數
-    service.isActive = !service.isActive;
-    showSuccess(`服務 "${service.name}" 已${service.isActive ? '上架' : '下架'}！`);
+    await updateServiceStatus(service.id, !service.is_active); // 調用 API 函數
+    service.is_active = !service.is_active;
+    showSuccess(`服務 "${service.name}" 已${service.is_active ? '上架' : '下架'}！`);
   } catch (error) {
     console.error('切換服務狀態失敗:', error);
     showError('切換服務狀態失敗，請稍後再試。');
@@ -341,7 +353,7 @@ async function handleImageUpload(event) {
     isLoading.value = true;
     try {
       const base64String = await toBase64(file);
-      currentService.value.imageUrl = base64String;
+      currentService.value.image_url = base64String;
       showSuccess('圖片已成功預覽！');
     } catch (error) {
       console.error('圖片轉換失敗:', error);

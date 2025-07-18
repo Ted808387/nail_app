@@ -130,7 +130,7 @@
 <script setup>
 import { ref, computed, watch, onMounted } from 'vue';
 import { useNotification } from '../../composables/useNotification';
-import { fetchBookings, saveBooking as apiSaveBooking, updateBooking, updateBookingStatus, deleteBooking as apiDeleteBooking, fetchServices, fetchBusinessSettings } from '../../api'; // 引入 API 函數
+import { fetchBookings, saveBooking as apiSaveBooking, updateBooking, deleteBooking as apiDeleteBooking, fetchServices, fetchBusinessSettings } from '../../api'; // 引入 API 函數
 import { useAuth } from '../../composables/useAuth'; // 引入 useAuth
 
 const { currentUserId } = useAuth(); // 獲取當前用戶 ID

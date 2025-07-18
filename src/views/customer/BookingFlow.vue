@@ -27,7 +27,7 @@
             <p class="text-sm sm:text-base text-soft-blue-600 mb-2">{{ service.description }}</p>
             <div class="flex justify-between items-center">
               <span class="text-base sm:text-lg font-medium text-soft-blue-700">NT$ {{ service.price }}</span>
-              <span class="text-xs sm:text-sm text-soft-blue-500">{{ service.minDuration }} - {{ service.maxDuration }} 分鐘</span>
+              <span class="text-xs sm:text-sm text-soft-blue-500">{{ service.min_duration }} - {{ service.max_duration }} 分鐘</span>
             </div>
           </div>
         </div>
@@ -94,7 +94,7 @@
           <p><strong>預約服務：</strong></p>
           <ul class="list-disc list-inside ml-2 sm:ml-4">
             <li v-for="service in selectedServicesDetails" :key="service.id">
-              {{ service.name }} ({{ service.minDuration }} - {{ service.maxDuration }} 分鐘, NT$ {{ service.price }})
+              {{ service.name }} ({{ service.min_duration }} - {{ service.max_duration }} 分鐘, NT$ {{ service.price }})
             </li>
           </ul>
           <p><strong>預約日期：</strong> {{ selectedDate }}</p>
@@ -326,7 +326,7 @@ onMounted(async () => {
 const totalDuration = computed(() => {
   return selectedServiceIds.value.reduce((sum, id) => {
     const service = availableServices.value.find(s => s.id === id);
-    return sum + (service ? service.maxDuration : 0);
+    return sum + (service ? service.max_duration : 0);
   }, 0);
 });
 
@@ -407,7 +407,7 @@ async function confirmBooking() {
       date: selectedDate.value,
       time: selectedTime.value,
       status: 'pending', // 新預約預設為待處理
-      notes: bookingNotes.value,
+      notes: bookingNotes.value === '' ? null : bookingNotes.value,
     };
     const savedBooking = await saveBooking(newBooking); // 調用 API 函數
 

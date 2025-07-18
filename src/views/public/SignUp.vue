@@ -174,13 +174,7 @@ async function handleSignUp() {
 
     if (response && response.id) { // 假設成功註冊會返回用戶 ID
       showSuccess('註冊成功！');
-      login(response.id, response.role); // 使用 useAuth 的 login 方法
-
-      if (response.role === 'admin') {
-        router.push('/admin');
-      } else {
-        router.push('/account/signin');
-      }
+      router.push('/account/signin'); // 註冊成功後導向登入頁面
     } else {
       showError('註冊失敗，請檢查輸入資訊。');
     }

@@ -1,6 +1,6 @@
 // src/api/index.js
 import axios from 'axios';
-import { useAuth } from '../composables/useAuth'; // 假設 useAuth 提供了獲取 token 的方法
+import { useAuth } from '../composables/useAuth';
 
 const API_BASE_URL = 'http://127.0.0.1:8000'; // 後端 FastAPI 服務的地址
 
@@ -14,8 +14,8 @@ const apiClient = axios.create({
 // 請求攔截器：在每個請求中添加 JWT Token
 apiClient.interceptors.request.use(
   (config) => {
-    const { currentUserId } = useAuth(); // 獲取當前用戶 ID
-    const token = localStorage.getItem(`token_${currentUserId.value}`); // 從 localStorage 獲取 token
+    const storedUserId = localStorage.getItem('currentUserId');
+    const token = storedUserId ? localStorage.getItem(`token_${storedUserId}`) : null;
 
     if (token) {
       config.headers.Authorization = `Bearer ${token}`;
@@ -35,10 +35,20 @@ apiClient.interceptors.response.use(
   (error) => {
     if (error.response && error.response.status === 401) {
       // 處理 401 Unauthorized 錯誤，例如導向登入頁面
-      const { logout } = useAuth();
-      logout(); // 清除認證狀態
-      // 可以添加路由跳轉到登入頁面的邏輯
-      // router.push('/account/signin');
+      // 這裡不能直接使用 useAuth()，因為它不是在組件內部
+      // 可以考慮發送一個自定義事件，讓 App.vue 或路由守衛處理登出
+      console.warn('收到 401 Unauthorized，請處理登出邏輯。');
+      // 臨時解決方案：直接清除 localStorage 中的 token 並重新導向
+      localStorage.removeItem('currentUserId');
+      localStorage.removeItem('currentUserRole');
+      // 遍歷並移除所有 token
+      for (let i = 0; i < localStorage.length; i++) {
+        const key = localStorage.key(i);
+        if (key.startsWith('token_')) {
+          localStorage.removeItem(key);
+        }
+      }
+      window.location.href = '/account/signin'; // 強制重新導向
     }
     return Promise.reject(error);
   }
@@ -202,66 +212,6 @@ export const saveBusinessSettings = async (settings) => {
   }
 };
 
-export const addHoliday = async (holidayData) => {
-  try {
-    const response = await apiClient.post('/admin/settings/holidays', holidayData);
-    return response.data;
-  } catch (error) {
-    console.error('Error adding holiday:', error);
-    throw error;
-  }
-};
-
-export const removeHoliday = async (holidayDate) => {
-  try {
-    await apiClient.delete(`/admin/settings/holidays/${holidayDate}`);
-    return { success: true };
-  } catch (error) {
-    console.error('Error removing holiday:', error);
-    throw error;
-  }
-};
-
-export const addUnavailableDateApi = async (unavailableDateData) => {
-  try {
-    const response = await apiClient.post('/admin/settings/unavailable-dates', unavailableDateData);
-    return response.data;
-  } catch (error) {
-    console.error('Error adding unavailable date:', error);
-    throw error;
-  }
-};
-
-export const removeUnavailableDateApi = async (unavailableDate) => {
-  try {
-    await apiClient.delete(`/admin/settings/unavailable-dates/${unavailableDate}`);
-    return { success: true };
-  } catch (error) {
-    console.error('Error removing unavailable date:', error);
-    throw error;
-  }
-};
-
-export const addTimeSlotApi = async (slot) => {
-  try {
-    const response = await apiClient.post('/admin/settings/time-slots', slot);
-    return response.data;
-  } catch (error) {
-    console.error('Error adding time slot:', error);
-    throw error;
-  }
-};
-
-export const removeTimeSlotApi = async (slotId) => {
-  try {
-    await apiClient.delete(`/admin/settings/time-slots/${slotId}`);
-    return { success: true };
-  } catch (error) {
-    console.error('Error removing time slot:', error);
-    throw error;
-  }
-};
-
 // --- 用戶認證 API ---
 export const registerUser = async (userData) => {
   try {
@@ -274,6 +224,7 @@ export const registerUser = async (userData) => {
 };
 
 export const loginUser = async (email, password) => {
+  console.trace('loginUser 被呼叫');
   try {
     const response = await apiClient.post('/auth/login', { email, password });
     const { access_token, user_id, user_role } = response.data;

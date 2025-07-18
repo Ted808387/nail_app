@@ -65,21 +65,27 @@ export function useAuth() {
 
   // 檢查用戶是否已登入並獲取用戶資訊 (可選，如果需要自動登入或刷新 token)
   async function checkAuthStatus() {
+    console.log('checkAuthStatus: 正在檢查認證狀態...');
     const storedUserId = localStorage.getItem('currentUserId');
     const storedUserRole = localStorage.getItem('currentUserRole');
     const token = storedUserId ? localStorage.getItem(`token_${storedUserId}`) : null;
 
+    console.log(`checkAuthStatus: storedUserId = ${storedUserId}, storedUserRole = ${storedUserRole}, token exists = ${!!token}`);
+
     if (storedUserId && storedUserRole && token) {
       try {
         // 嘗試獲取用戶資料，驗證 token 是否有效
+        console.log('checkAuthStatus: 嘗試透過 fetchUserById 驗證 token...');
         await fetchUserById(); // fetchUserById 現在會自動使用 token
         currentUserId.value = parseInt(storedUserId);
         currentUserRole.value = storedUserRole;
+        console.log('checkAuthStatus: Token 有效，用戶已登入。');
       } catch (error) {
-        console.error('Token 無效或過期，自動登出:', error);
+        console.error('checkAuthStatus: Token 無效或過期，自動登出:', error);
         logout(); // Token 無效則自動登出
       }
     } else {
+      console.log('checkAuthStatus: 無有效儲存的用戶資訊或 token，執行登出。');
       logout(); // 沒有儲存的用戶資訊或 token，則登出
     }
   }

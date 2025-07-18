@@ -42,7 +42,7 @@
 </template>
 
 <script setup>
-import { ref } from 'vue';
+import { ref, onMounted } from 'vue';
 import { useRouter } from 'vue-router';
 import { useNotification } from '../../composables/useNotification';
 import { loginUser } from '../../api'; // 引入 loginUser
@@ -50,6 +50,11 @@ import { useAuth } from '../../composables/useAuth'; // 引入 useAuth
 
 const email = ref('');
 const password = ref('');
+
+onMounted(() => {
+  email.value = '';
+  password.value = '';
+});
 const rememberMe = ref(false);
 const errors = ref({});
 const loginError = ref('');
@@ -79,6 +84,7 @@ function validateForm() {
 }
 
 async function handleSignIn() {
+  console.trace('handleSignIn 被呼叫');
   if (!validateForm()) {
     return;
   }
@@ -87,21 +93,21 @@ async function handleSignIn() {
   try {
     console.log('嘗試登入:', { email: email.value, password: password.value, rememberMe: rememberMe.value });
 
-    const response = await loginUser(email.value, password.value);
+    const success = await login(email.value, password.value); // 使用 useAuth 的 login 方法
 
-    if (response.user_id) {
+    if (success) {
       showSuccess('登入成功！');
-      login(response.user_id, response.user_role); // 使用 useAuth 的 login 方法
-
-      if (response.user_role === 'admin') {
+      // 登入成功後，useAuth 內部會處理用戶狀態和 token 儲存
+      // 這裡只需要根據用戶角色進行路由跳轉
+      const { currentUserRole } = useAuth(); // 重新獲取最新的用戶角色
+      if (currentUserRole.value === 'admin') {
         router.push('/admin');
       } else {
         router.push('/my-bookings');
       }
     } else {
-      // 這裡的錯誤處理可能需要根據實際 API 返回的錯誤格式調整
-      loginError.value = 'Email 或密碼不正確。';
-      showError('Email 或密碼不正確。');
+      // 登入失敗的錯誤訊息已在 useAuth 內部處理
+      loginError.value = 'Email 或密碼不正確。'; // 這裡可以保留一個通用的錯誤訊息
     }
 
   } catch (error) {

@@ -211,10 +211,19 @@ const getStatusClass = (status) => {
 };
 
 const fetchDashboardData = async () => {
+  console.log('fetchDashboardData: 開始載入儀表板數據...');
   try {
+    console.log('fetchDashboardData: 正在獲取所有預約...');
     const allBookings = await fetchBookings();
+    console.log('fetchDashboardData: 獲取到預約數據:', allBookings);
+
+    console.log('fetchDashboardData: 正在獲取所有客戶...');
     const allClients = await fetchClients();
-    const allServices = await fetchServices();
+    console.log('fetchDashboardData: 獲取到客戶數據:', allClients);
+
+    console.log('fetchDashboardData: 正在獲取所有服務...');
+    const allServices = await await fetchServices();
+    console.log('fetchDashboardData: 獲取到服務數據:', allServices);
 
     const today = new Date();
     today.setHours(0, 0, 0, 0);

@@ -93,7 +93,7 @@
 <script setup>
 import { ref, computed, onMounted } from 'vue';
 import { useNotification } from '../../composables/useNotification';
-import { fetchBookings, saveBooking, updateBooking, updateBookingStatus } from '../../api'; // 引入 API 函數
+import { fetchBookings, saveBooking, updateBooking } from '../../api'; // 引入 API 函數
 import { useAuth } from '../../composables/useAuth'; // 引入 useAuth
 
 const { isAdmin } = useAuth(); // 使用 useAuth
@@ -211,7 +211,7 @@ async function cancelBooking(bookingId) {
   isLoading.value = true; // 開始載入
   console.log('嘗試取消預約:', bookingId);
   try {
-    await updateBookingStatus(bookingId, 'cancelled'); // 調用 updateBookingStatus API
+    await updateBooking(bookingId, { status: 'cancelled' }); // 調用 updateBooking API
     showSuccess('預約已成功取消！'); // 使用通知
     // 重新載入預約數據以確保最新狀態
     bookings.value = await fetchBookings();
