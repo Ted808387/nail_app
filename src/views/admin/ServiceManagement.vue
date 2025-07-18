@@ -24,17 +24,17 @@
           </select>
         </div>
         <div class="flex flex-wrap justify-center sm:justify-end gap-2">
-          <button @click="bulkAction('activate')" :disabled="selectedServices.length === 0 || isLoading"
+          <button @click="bulkAction('activate')" :disabled="selectedServices.length === 0 || serviceStore.isLoading"
             class="px-3 py-1 bg-green-500 text-white rounded-full text-xs sm:text-sm hover:bg-green-600 transition duration-300 disabled:opacity-50 disabled:cursor-not-allowed">
-            {{ isLoading ? '處理中...' : '批量上架' }}
+            {{ serviceStore.isLoading ? '處理中...' : '批量上架' }}
           </button>
-          <button @click="bulkAction('deactivate')" :disabled="selectedServices.length === 0 || isLoading"
+          <button @click="bulkAction('deactivate')" :disabled="selectedServices.length === 0 || serviceStore.isLoading"
             class="px-3 py-1 bg-yellow-500 text-white rounded-full text-xs sm:text-sm hover:bg-yellow-600 transition duration-300 disabled:opacity-50 disabled:cursor-not-allowed">
-            {{ isLoading ? '處理中...' : '批量下架' }}
+            {{ serviceStore.isLoading ? '處理中...' : '批量下架' }}
           </button>
-          <button @click="bulkAction('delete')" :disabled="selectedServices.length === 0 || isLoading"
+          <button @click="bulkAction('delete')" :disabled="selectedServices.length === 0 || serviceStore.isLoading"
             class="px-3 py-1 bg-red-500 text-white rounded-full text-xs sm:text-sm hover:bg-red-600 transition duration-300 disabled:opacity-50 disabled:cursor-not-allowed">
-            {{ isLoading ? '處理中...' : '批量刪除' }}
+            {{ serviceStore.isLoading ? '處理中...' : '批量刪除' }}
           </button>
         </div>
       </div>
@@ -75,18 +75,18 @@
                 </span>
               </td>
               <td class="py-2 sm:py-3 px-3 sm:px-4 flex flex-col sm:flex-row space-y-1 sm:space-y-0 sm:space-x-2">
-                <button @click="showModal(service)" :disabled="isLoading"
+                <button @click="showModal(service)" :disabled="serviceStore.isLoading"
                   class="px-3 py-1 bg-blue-500 text-white rounded-full text-xs hover:bg-blue-600 transition duration-300 disabled:opacity-50 disabled:cursor-not-allowed">
                   編輯
                 </button>
-                <button @click="toggleStatus(service)" :disabled="isLoading"
+                <button @click="toggleStatus(service)" :disabled="serviceStore.isLoading"
                   :class="[service.is_active ? 'bg-yellow-500 hover:bg-yellow-600' : 'bg-green-500 hover:bg-green-600']"
                   class="px-3 py-1 text-white rounded-full text-xs transition duration-300 disabled:opacity-50 disabled:cursor-not-allowed">
                   {{ service.is_active ? '下架' : '上架' }}
                 </button>
               </td>
             </tr>
-            <tr v-if="services.length === 0">
+            <tr v-if="serviceStore.services.length === 0">
               <td colspan="8" class="py-6 sm:py-8 text-center text-soft-blue-600 text-base sm:text-lg">目前沒有服務項目。</td>
             </tr>
           </tbody>
@@ -95,7 +95,7 @@
 
       <!-- 新增/編輯服務的 Modal -->
       <div v-if="isModalOpen" class="fixed inset-0 bg-black bg-opacity-40 flex items-center justify-center z-50 p-4">
-        <div class="bg-white rounded-2xl shadow-xl p-6 sm:p-8 w-full max-w-md relative border border-soft-blue-200">
+        <div class="bg-white rounded-2xl shadow-xl p-8 w-full max-w-md relative border border-soft-blue-200">
           <button @click="closeModal" class="absolute top-3 right-3 text-gray-500 hover:text-gray-700 text-2xl sm:text-3xl font-bold">&times;</button>
           <h2 class="text-2xl sm:text-3xl font-bold text-soft-blue-800 mb-5 sm:mb-6">{{ currentService.id ? '編輯' : '新增' }}服務</h2>
           <form @submit.prevent="saveService">
@@ -145,9 +145,9 @@
                      alt="Service Image Preview"
                      class="w-24 h-24 object-cover rounded-lg border border-soft-blue-200">
                 <input type="file" ref="imageInput" @change="handleImageUpload" accept="image/*" class="hidden">
-                <button type="button" @click="triggerImageUpload" :disabled="isLoading"
+                <button type="button" @click="triggerImageUpload" :disabled="serviceStore.isLoading"
                         class="px-4 py-2 bg-soft-blue-500 text-white rounded-full shadow-md hover:bg-soft-blue-600 transition duration-300 disabled:opacity-50">
-                  {{ isLoading ? '上傳中...' : '選擇圖片' }}
+                  {{ serviceStore.isLoading ? '上傳中...' : '選擇圖片' }}
                 </button>
               </div>
             </div>
@@ -155,13 +155,13 @@
               <input type="checkbox" id="service-active" v-model="currentService.is_active" class="mr-2 leading-tight h-4 w-4 text-soft-blue-600 focus:ring-soft-blue-500 border-gray-300 rounded">
               <label for="service-active" class="text-soft-blue-700 text-sm sm:text-base">上架</label>
             </div>
-            <button type="submit" :disabled="isLoading"
+            <button type="submit" :disabled="serviceStore.isLoading"
               class="w-full bg-soft-blue-600 hover:bg-soft-blue-700 text-white font-bold py-2 sm:py-3 px-3 sm:px-4 rounded-xl focus:outline-none focus:shadow-outline transition duration-300 disabled:opacity-50 disabled:cursor-not-allowed">
-              {{ isLoading ? '儲存中...' : (currentService.id ? '儲存變更' : '新增服務') }}
+              {{ serviceStore.isLoading ? '儲存中...' : (currentService.id ? '儲存變更' : '新增服務') }}
             </button>
-            <button v-if="currentService.id" @click="deleteService(currentService.id)" type="button" :disabled="isLoading"
+            <button v-if="currentService.id" @click="deleteService(currentService.id)" type="button" :disabled="serviceStore.isLoading"
               class="w-full mt-3 sm:mt-4 bg-red-500 hover:bg-red-600 text-white font-bold py-2 sm:py-3 px-3 sm:px-4 rounded-xl focus:outline-none focus:shadow-outline transition duration-300 disabled:opacity-50 disabled:cursor-not-allowed">
-              {{ isLoading ? '刪除中...' : '刪除服務' }}
+              {{ serviceStore.isLoading ? '刪除中...' : '刪除服務' }}
             </button>
           </form>
         </div>
@@ -173,13 +173,13 @@
 <script setup>
 import { ref, computed, onMounted } from 'vue';
 import { useNotification } from '../../composables/useNotification';
-import { fetchServices, saveService as apiSaveService, updateServiceStatus, deleteServiceApi, bulkServiceAction } from '../../api'; // 引入 API 函數，並將 saveService 重新命名為 apiSaveService
+import { useServiceStore } from '../../stores/service'; // 引入 useServiceStore
 
-const services = ref([]); // 初始化為空陣列
+const serviceStore = useServiceStore(); // 使用 serviceStore
+
 const isModalOpen = ref(false);
 const currentService = ref({});
 const selectedServices = ref([]); // 用於批量操作
-const isLoading = ref(false); // 新增載入狀態
 const imageInput = ref(null); // 用於圖片檔案輸入的引用
 const filterCategory = ref(''); // 新增：類別篩選
 const filterStatus = ref(''); // 新增：狀態篩選
@@ -189,15 +189,15 @@ const { showSuccess, showError } = useNotification(); // 使用通知組合式�
 // 組件掛載時載入數據
 onMounted(async () => {
   try {
-    services.value = await fetchServices(); // 調用 API 函數
+    await serviceStore.fetchServices(); // 調用 Pinia Store 的 action
   } catch (error) {
     console.error('載入服務失敗:', error);
-    showError('載入服務失敗，請稍後再試。');
+    showError(serviceStore.error || '載入服務失敗，請稍後再試。');
   }
 });
 
 const filteredServices = computed(() => {
-  return services.value.filter(service => {
+  return serviceStore.services.filter(service => {
     const categoryMatch = !filterCategory.value || service.category === filterCategory.value;
     const statusMatch = filterStatus.value === '' || String(service.is_active) === filterStatus.value;
     return categoryMatch && statusMatch;
@@ -205,14 +205,14 @@ const filteredServices = computed(() => {
 });
 
 const isAllSelected = computed(() => {
-  return services.value.length > 0 && selectedServices.value.length === services.value.length;
+  return serviceStore.services.length > 0 && selectedServices.value.length === serviceStore.services.length;
 });
 
 function toggleSelectAll() {
   if (isAllSelected.value) {
     selectedServices.value = [];
   } else {
-    selectedServices.value = services.value.map(s => s.id);
+    selectedServices.value = serviceStore.services.map(s => s.id);
   }
 }
 
@@ -237,7 +237,6 @@ async function saveService() { // 本地函數
     return;
   }
 
-  isLoading.value = true; // 開始載入
   try {
     const serviceData = {
       name: currentService.value.name,
@@ -251,56 +250,34 @@ async function saveService() { // 本地函數
       ...(currentService.value.id && { id: currentService.value.id }) // 分辨編輯與新增
     };
 
-    const savedService = await apiSaveService(serviceData); // 調用 API 函數 apiSaveService
-
-    if (currentService.value.id) {
-      // 編輯現有服務
-      const index = services.value.findIndex(s => s.id === savedService.id);
-      if (index !== -1) {
-        services.value[index] = { ...savedService };
-        showSuccess('服務已更新！');
-      }
-    } else {
-      // 新增服務
-      services.value.push({ ...savedService });
-      showSuccess('服務已新增！');
-    }
+    await serviceStore.saveService(serviceData); // 調用 Pinia Store 的 action
+    showSuccess(currentService.value.id ? '服務已更新！' : '服務已新增！');
     closeModal();
   } catch (error) {
     console.error('儲存服務失敗:', error);
-    showError('儲存服務失敗，請稍後再試。');
-  } finally {
-    isLoading.value = false; // 結束載入
+    showError(serviceStore.error || '儲存服務失敗，請稍後再試。');
   }
 }
 
 async function toggleStatus(service) {
-  isLoading.value = true; // 開始載入
   try {
-    await updateServiceStatus(service.id, !service.is_active); // 調用 API 函數
-    service.is_active = !service.is_active;
-    showSuccess(`服務 "${service.name}" 已${service.is_active ? '上架' : '下架'}！`);
+    await serviceStore.updateServiceStatus(service.id, !service.is_active); // 調用 Pinia Store 的 action
+    showSuccess(`服務 "${service.name}" 已${!service.is_active ? '上架' : '下架'}！`);
   } catch (error) {
     console.error('切換服務狀態失敗:', error);
-    showError('切換服務狀態失敗，請稍後再試。');
-  } finally {
-    isLoading.value = false; // 結束載入
+    showError(serviceStore.error || '切換服務狀態失敗，請稍後再試。');
   }
 }
 
 async function deleteService(id) {
   if (confirm('您確定要刪除此服務嗎？')) {
-    isLoading.value = true; // 開始載入
     try {
-      await deleteServiceApi(id); // 調用 API 函數
-      services.value = services.value.filter(s => s.id !== id);
+      await serviceStore.deleteService(id); // 調用 Pinia Store 的 action
       showSuccess('服務已刪除！');
       closeModal();
     } catch (error) {
       console.error('刪除服務失敗:', error);
-      showError('刪除服務失敗，請稍後再試。');
-    } finally {
-      isLoading.value = false; // 結束載入
+      showError(serviceStore.error || '刪除服務失敗，請稍後再試。');
     }
   }
 }
@@ -326,18 +303,13 @@ async function bulkAction(action) {
   }
 
   if (confirm(confirmMessage)) {
-    isLoading.value = true; // 開始載入
     try {
-      await bulkServiceAction(action, selectedServices.value); // 調用 API 函數
-      // 重新載入數據以反映批量操作的結果
-      services.value = await fetchServices();
+      await serviceStore.bulkServiceAction(action, selectedServices.value); // 調用 Pinia Store 的 action
       selectedServices.value = []; // 清空選中
       showSuccess(successMessage);
     } catch (error) {
       console.error('批量操作失敗:', error);
-      showError('批量操作失敗，請稍後再試。');
-    } finally {
-      isLoading.value = false; // 結束載入
+      showError(serviceStore.error || '批量操作失敗，請稍後再試。');
     }
   }
 }
@@ -350,7 +322,6 @@ function triggerImageUpload() {
 async function handleImageUpload(event) {
   const file = event.target.files[0];
   if (file) {
-    isLoading.value = true;
     try {
       const base64String = await toBase64(file);
       currentService.value.image_url = base64String;
@@ -358,8 +329,6 @@ async function handleImageUpload(event) {
     } catch (error) {
       console.error('圖片轉換失敗:', error);
       showError('圖片讀取失敗，請選擇其他圖片。');
-    } finally {
-      isLoading.value = false;
     }
   }
 }

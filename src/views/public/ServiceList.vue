@@ -34,7 +34,7 @@
       <div class="service-item flex flex-col md:flex-row items-center justify-between border-b border-soft-blue-200 py-4 sm:py-5 last:border-b-0"
         v-for="service in filteredAndSortedServices" :key="service.id">
         <div class="service-image w-full md:w-1/4 mb-4 md:mb-0 md:mr-6">
-          <img :src="service.imageUrl || 'https://via.placeholder.com/150?text=Service'" :alt="service.name"
+          <img :src="service.image_url || 'https://via.placeholder.com/150?text=Service'" :alt="service.name"
             class="w-full h-24 sm:h-32 object-cover rounded-lg shadow-md">
         </div>
         <div class="service-info flex-grow pr-0 md:pr-4 text-center md:text-left mb-4 md:mb-0">
@@ -44,7 +44,7 @@
         </div>
         <div class="service-details flex flex-col items-center md:items-end text-center md:text-right mt-0 md:mt-0">
           <span class="text-base sm:text-lg font-medium text-soft-blue-700 mb-1">價格: NT$ {{ service.price }}</span>
-          <span class="text-xs sm:text-sm mb-3 text-soft-blue-600">所需時間: {{ service.minDuration }} - {{ service.maxDuration }} 分鐘</span>
+          <span class="text-xs sm:text-sm mb-3 text-soft-blue-600">所需時間: {{ service.min_duration }} - {{ service.max_duration }} 分鐘</span>
           <button @click="bookService(service.id)"
             class="px-5 py-2 bg-soft-blue-600 text-white rounded-full shadow-md hover:bg-soft-blue-700 transition duration-300 text-sm sm:text-base">
             選擇此服務
@@ -62,20 +62,19 @@
 import { ref, computed, onMounted } from 'vue';
 import { useRouter } from 'vue-router';
 import { useNotification } from '../../composables/useNotification';
-import { fetchServices } from '../../api'; // 引入 API 函數
+import { useServiceStore } from '../../stores/service'; // 引入 useServiceStore
 
 const router = useRouter();
 const { showInfo, showError } = useNotification();
-
-const services = ref([]); // 初始化為空陣列
+const serviceStore = useServiceStore(); // 使用 serviceStore
 
 // 組件掛載時載入數據
 onMounted(async () => {
   try {
-    services.value = await fetchServices(); // 調用 API 函數
+    await serviceStore.fetchServices(); // 調用 Pinia Store 的 action
   } catch (error) {
     console.error('載入服務失敗:', error);
-    showError('載入服務失敗，請稍後再試。');
+    showError(serviceStore.error || '載入服務失敗，請稍後再試。');
   }
 });
 
@@ -83,7 +82,7 @@ const selectedCategory = ref('');
 const sortBy = ref('price-asc'); // 預設按價格由低到高排序
 
 const filteredAndSortedServices = computed(() => {
-  let displayServices = [...services.value]; // 複製一份，避免直接修改原始數據
+  let displayServices = [...serviceStore.services]; // 從 store 獲取服務數據
 
   // 篩選
   if (selectedCategory.value) {
@@ -97,9 +96,9 @@ const filteredAndSortedServices = computed(() => {
     } else if (sortBy.value === 'price-desc') {
       return b.price - a.price;
     } else if (sortBy.value === 'duration-asc') {
-      return a.duration - b.duration;
+      return a.min_duration - b.min_duration; // 使用 min_duration 進行排序
     } else if (sortBy.value === 'duration-desc') {
-      return b.duration - a.duration;
+      return b.min_duration - a.min_duration; // 使用 min_duration 進行排序
     }
     return 0;
   });

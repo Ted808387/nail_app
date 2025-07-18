@@ -112,13 +112,13 @@
               <textarea id="notes" v-model="editingBooking.notes" rows="3"
                 class="shadow appearance-none border border-soft-blue-300 rounded-xl w-full py-3 px-4 text-gray-700 leading-tight focus:outline-none focus:shadow-outline focus:border-soft-blue-400"></textarea>
             </div>
-            <button type="submit" :disabled="isLoading"
+            <button type="submit" :disabled="bookingStore.isLoading || serviceStore.isLoading || clientStore.isLoading || businessSettingsStore.isLoading"
               class="w-full bg-soft-blue-600 hover:bg-soft-blue-700 text-white font-bold py-3 px-4 rounded-xl focus:outline-none focus:shadow-outline transition duration-300 disabled:opacity-50 disabled:cursor-not-allowed">
-              {{ isLoading ? '儲存中...' : (editingBooking.id ? '儲存變更' : '新增預約') }}
+              {{ bookingStore.isLoading ? '儲存中...' : (editingBooking.id ? '儲存變更' : '新增預約') }}
             </button>
-            <button v-if="editingBooking.id" @click="deleteBooking(editingBooking.id)" type="button" :disabled="isLoading"
+            <button v-if="editingBooking.id" @click="deleteBooking(editingBooking.id)" type="button" :disabled="bookingStore.isLoading || serviceStore.isLoading || clientStore.isLoading || businessSettingsStore.isLoading"
               class="w-full mt-4 bg-red-500 hover:bg-red-600 text-white font-bold py-3 px-4 rounded-xl focus:outline-none focus:shadow-outline transition duration-300 disabled:opacity-50 disabled:cursor-not-allowed">
-              {{ isLoading ? '刪除中...' : '刪除預約' }}
+              {{ bookingStore.isLoading ? '刪除中...' : '刪除預約' }}
             </button>
           </form>
         </div>
@@ -130,25 +130,23 @@
 <script setup>
 import { ref, computed, watch, onMounted } from 'vue';
 import { useNotification } from '../../composables/useNotification';
-import { fetchBookings, saveBooking as apiSaveBooking, updateBooking, deleteBooking as apiDeleteBooking, fetchServices, fetchBusinessSettings } from '../../api'; // 引入 API 函數
-import { useAuth } from '../../composables/useAuth'; // 引入 useAuth
+import { useAuthStore } from '../../stores/auth';
+import { useBookingStore } from '../../stores/booking';
+import { useServiceStore } from '../../stores/service';
+import { useClientStore } from '../../stores/client';
+import { useBusinessSettingsStore } from '../../stores/businessSettings';
 
-const { currentUserId } = useAuth(); // 獲取當前用戶 ID
+const authStore = useAuthStore();
+const bookingStore = useBookingStore();
+const serviceStore = useServiceStore();
+const clientStore = useClientStore();
+const businessSettingsStore = useBusinessSettingsStore();
 
 const currentView = ref('month'); // 'day', 'week', 'month'
 const currentDate = ref(new Date()); // 當前顯示的日期
 
 const isModalOpen = ref(false);
 const editingBooking = ref({}); // 用於新增或編輯的預約數據
-const isLoading = ref(false); // 新增載入狀態
-
-const bookings = ref([]); // 初始化為空陣列，將從 API 載入
-const availableServices = ref([]); // 從 API 載入服務數據
-const allClients = ref([]); // 從 API 載入所有客戶數據
-const businessHours = ref([]);
-const holidays = ref([]);
-const unavailableDates = ref([]);
-const bookableTimeSlots = ref([]);
 
 const { showSuccess, showError } = useNotification(); // 使用通知組合式函數
 
@@ -160,22 +158,15 @@ function formatDateToYYYYMMDD(date) {
   return `${year}-${month}-${day}`;
 }
 
-// 從 dataService 載入預約數據
-function loadBookingsData() {
-  bookings.value = loadBookings();
-}
-
 // 組件掛載時載入數據
 onMounted(async () => {
   try {
-    bookings.value = await fetchBookings(); // 從 API 載入預約數據
-    availableServices.value = await fetchServices(); // 從 API 載入服務數據
-    allClients.value = await fetchClients(); // 從 API 載入所有客戶數據
-    const businessSettings = await fetchBusinessSettings(); // 載入營業設定
-    businessHours.value = businessSettings.business_hours;
-    holidays.value = businessSettings.holidays;
-    unavailableDates.value = businessSettings.unavailable_dates;
-    bookableTimeSlots.value = businessSettings.bookable_time_slots;
+    await Promise.all([
+      bookingStore.fetchBookings(),
+      serviceStore.fetchServices(),
+      clientStore.fetchClients(),
+      businessSettingsStore.fetchBusinessSettings(),
+    ]);
   } catch (error) {
     console.error('載入數據失敗:', error);
     showError('載入數據失敗，請稍後再試。');
@@ -204,6 +195,13 @@ const calendarDays = computed(() => {
   const today = new Date();
   today.setHours(0, 0, 0, 0); // 正規化今天的日期，用於比較
 
+  const bookings = bookingStore.bookings; // 從 store 獲取 bookings
+  const availableServices = serviceStore.services; // 從 store 獲取 services
+  const allClients = clientStore.clients; // 從 store 獲取 clients
+  const businessHours = businessSettingsStore.settings?.business_hours || [];
+  const holidays = businessSettingsStore.settings?.holidays || [];
+  const unavailableDates = businessSettingsStore.settings?.unavailable_dates || [];
+
   if (currentView.value === 'month') {
     const year = currentDate.value.getFullYear();
     const month = currentDate.value.getMonth();
@@ -220,11 +218,15 @@ const calendarDays = computed(() => {
     for (let i = 1; i <= lastDayOfMonth.getDate(); i++) {
       const date = new Date(year, month, i);
       const dateString = formatDateToYYYYMMDD(date);
-      const dayBookings = bookings.value.filter(b => b.date === dateString);
-      const isHoliday = holidays.value.includes(dateString);
-      const isUnavailable = unavailableDates.value.includes(dateString);
+      const dayBookings = bookings.filter(b => b.date === dateString).map(b => ({
+        ...b,
+        clientName: allClients.find(c => c.id === b.user_id)?.name || '未知客戶',
+        serviceName: availableServices.find(s => s.id === b.service_id)?.name || '未知服務',
+      }));
+      const isHoliday = holidays.includes(dateString);
+      const isUnavailable = unavailableDates.includes(dateString);
       const dayOfWeek = date.getDay(); // 0 for Sunday, 1 for Monday, etc.
-      const businessDay = businessHours.value.find(d => d.id === (dayOfWeek === 0 ? 7 : dayOfWeek));
+      const businessDay = businessHours.find(d => d.id === (dayOfWeek === 0 ? 7 : dayOfWeek));
       const isClosedDay = businessDay ? businessDay.isClosed : true; // 如果沒有設定，預設為關閉
 
       const isBlocked = isHoliday || isUnavailable || isClosedDay;
@@ -246,11 +248,15 @@ const calendarDays = computed(() => {
       const date = new Date(startOfWeek);
       date.setDate(startOfWeek.getDate() + i);
       const dateString = formatDateToYYYYMMDD(date);
-      const dayBookings = bookings.value.filter(b => b.date === dateString);
-      const isHoliday = holidays.value.includes(dateString);
-      const isUnavailable = unavailableDates.value.includes(dateString);
+      const dayBookings = bookings.filter(b => b.date === dateString).map(b => ({
+        ...b,
+        clientName: allClients.find(c => c.id === b.user_id)?.name || '未知客戶',
+        serviceName: availableServices.find(s => s.id === b.service_id)?.name || '未知服務',
+      }));
+      const isHoliday = holidays.includes(dateString);
+      const isUnavailable = unavailableDates.includes(dateString);
       const dayOfWeek = date.getDay(); // 0 for Sunday, 1 for Monday, etc.
-      const businessDay = businessHours.value.find(d => d.id === (dayOfWeek === 0 ? 7 : dayOfWeek));
+      const businessDay = businessHours.find(d => d.id === (dayOfWeek === 0 ? 7 : dayOfWeek));
       const isClosedDay = businessDay ? businessDay.isClosed : true; // 如果沒有設定，預設為關閉
 
       const isBlocked = isHoliday || isUnavailable || isClosedDay;
@@ -267,11 +273,15 @@ const calendarDays = computed(() => {
   } else { // day view
     const date = new Date(currentDate.value);
     const dateString = formatDateToYYYYMMDD(date);
-    const dayBookings = bookings.value.filter(b => b.date === dateString);
-    const isHoliday = holidays.value.includes(dateString);
-    const isUnavailable = unavailableDates.value.includes(dateString);
+    const dayBookings = bookings.filter(b => b.date === dateString).map(b => ({
+      ...b,
+      clientName: allClients.find(c => c.id === b.user_id)?.name || '未知客戶',
+      serviceName: availableServices.find(s => s.id === b.service_id)?.name || '未知服務',
+    }));
+    const isHoliday = holidays.includes(dateString);
+    const isUnavailable = unavailableDates.includes(dateString);
     const dayOfWeek = date.getDay(); // 0 for Sunday, 1 for Monday, etc.
-    const businessDay = businessHours.value.find(d => d.id === (dayOfWeek === 0 ? 7 : dayOfWeek));
+    const businessDay = businessHours.find(d => d.id === (dayOfWeek === 0 ? 7 : dayOfWeek));
     const isClosedDay = businessDay ? businessDay.isClosed : true; // 如果沒有設定，預設為關閉
 
     const isBlocked = isHoliday || isUnavailable || isClosedDay;
@@ -324,14 +334,14 @@ function openBookingModal(booking = {}) {
 
   // 如果是編輯現有預約，從 user_id 和 service_id 填充 clientName 和 serviceName
   if (editingBooking.value.user_id) {
-    const client = allClients.value.find(c => c.id === editingBooking.value.user_id);
+    const client = clientStore.clients.find(c => c.id === editingBooking.value.user_id);
     if (client) {
       editingBooking.value.clientName = client.name;
       editingBooking.value.originalClientName = client.name; // 儲存原始客戶姓名
     }
   }
   if (editingBooking.value.service_id) {
-    const service = availableServices.value.find(s => s.id === editingBooking.value.service_id);
+    const service = serviceStore.services.find(s => s.id === editingBooking.value.service_id);
     if (service) {
       editingBooking.value.serviceName = service.name;
     }
@@ -352,12 +362,12 @@ function closeBookingModal() {
 
 // 儲存預約
 async function saveBooking() {
-  isLoading.value = true; // 開始載入
+  // isLoading.value = true; // 開始載入
   try {
-    const service = availableServices.value.find(s => s.name === editingBooking.value.serviceName);
+    const service = serviceStore.services.find(s => s.name === editingBooking.value.serviceName);
     if (!service) {
       showError('服務項目不存在。');
-      isLoading.value = false;
+      // isLoading.value = false;
       return;
     }
 
@@ -367,10 +377,10 @@ async function saveBooking() {
       userId = editingBooking.value.user_id;
     } else {
       // 否則，根據客戶姓名查找 user_id
-      const client = allClients.value.find(c => c.name === editingBooking.value.clientName);
+      const client = clientStore.clients.find(c => c.name === editingBooking.value.clientName);
       if (!client) {
         showError('客戶姓名不存在，請確認客戶已註冊。');
-        isLoading.value = false;
+        // isLoading.value = false;
         return;
       }
       userId = client.id;
@@ -388,40 +398,40 @@ async function saveBooking() {
     let savedBooking;
     if (editingBooking.value.id) {
       // 編輯現有預約
-      savedBooking = await updateBooking(editingBooking.value.id, bookingData); // 調用 API 函數
+      savedBooking = await bookingStore.updateBooking(editingBooking.value.id, bookingData); // 調用 Pinia Store 的 action
       showSuccess('預約已更新！');
     } else {
       // 新增預約
-      savedBooking = await apiSaveBooking(bookingData); // 調用 API 函數
+      savedBooking = await bookingStore.saveBooking(bookingData); // 調用 Pinia Store 的 action
       showSuccess('預約已新增！');
     }
 
-    // 重新載入所有預約以更新日曆顯示
-    bookings.value = await fetchBookings();
+    // 重新載入所有預約以更新日曆顯示 (Pinia Store 會自動更新，這裡不需要手動重新載入)
+    // bookings.value = await fetchBookings();
     closeBookingModal();
   } catch (error) {
     console.error('儲存預約失敗:', error);
-    showError('儲存預約失敗，請稍後再試。');
+    showError(bookingStore.error || '儲存預約失敗，請稍後再試。');
   } finally {
-    isLoading.value = false; // 結束載入
+    // isLoading.value = false; // 結束載入
   }
 }
 
 // 刪除預約
 async function deleteBooking(id) {
   if (confirm('您確定要刪除此預約嗎？')) {
-    isLoading.value = true; // 開始載入
+    // isLoading.value = true; // 開始載入
     try {
-      await apiDeleteBooking(id); // 調用 API 函數
+      await bookingStore.deleteBooking(id); // 調用 Pinia Store 的 action
       showSuccess('預約已刪除！');
-      // 重新載入所有預約以更新日曆顯示
-      bookings.value = await fetchBookings();
+      // 重新載入所有預約以更新日曆顯示 (Pinia Store 會自動更新，這裡不需要手動重新載入)
+      // bookings.value = await fetchBookings();
       closeBookingModal();
     } catch (error) {
       console.error('刪除預約失敗:', error);
-      showError('刪除預約失敗，請稍後再試。');
+      showError(bookingStore.error || '刪除預約失敗，請稍後再試。');
     } finally {
-      isLoading.value = false; // 結束載入
+      // isLoading.value = false; // 結束載入
     }
   }
 }

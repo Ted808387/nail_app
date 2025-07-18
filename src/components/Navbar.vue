@@ -48,10 +48,13 @@
 
 <script setup>
 import { ref } from 'vue';
-import { useAuth } from '../composables/useAuth';
+import { storeToRefs } from 'pinia'; // 引入 storeToRefs
+import { useAuthStore } from '../stores/auth'; // 引入 Pinia 的 auth store
 
 const isOpen = ref(false);
-const { isLoggedIn, isAdmin, logout } = useAuth();
+const authStore = useAuthStore(); // 獲取 auth store 實例
+const { isLoggedIn, isAdmin } = storeToRefs(authStore); // 使用 storeToRefs 保持響應性
+const { logout } = authStore; // 直接從 store 獲取 action
 
 function handleLogout() {
   logout();

@@ -102,15 +102,30 @@ const router = createRouter({
 })
 
 // 全局導航守衛
-import { useAuth } from '../composables/useAuth';
+import { useAuthStore } from '../stores/auth'; // 導入 Pinia 的 auth store
 
-router.beforeEach((to, from, next) => {
-  const { isLoggedIn, isAdmin } = useAuth();
+router.beforeEach(async (to, from, next) => {
+  const authStore = useAuthStore(); // 獲取 auth store 實例
 
-  if (to.meta.requiresAuth && !isLoggedIn.value) {
+  // 確保 auth 狀態已載入
+  if (!authStore.currentUserId && localStorage.getItem('currentUserId')) {
+    await authStore.checkAuthStatus();
+  }
+
+  const isAuthenticated = authStore.isLoggedIn;
+  const isAdmin = authStore.isAdmin;
+
+  // 如果已登入，且嘗試訪問登入或註冊頁面，則重定向
+  if (isAuthenticated && (to.path === '/account/signin' || to.path === '/account/signup')) {
+    if (isAdmin) {
+      next('/admin'); // 管理員導向管理員儀表板
+    } else {
+      next('/my-bookings'); // 普通用戶導向我的預約
+    }
+  } else if (to.meta.requiresAuth && !isAuthenticated) {
     // 如果需要登入但未登入，導向登入頁
     next('/account/signin');
-  } else if (to.meta.requiresAdmin && !isAdmin.value) {
+  } else if (to.meta.requiresAdmin && !isAdmin) {
     // 如果需要管理員權限但不是管理員，導向首頁或客戶預約頁
     next('/'); // 或者 next('/my-bookings');
   } else {

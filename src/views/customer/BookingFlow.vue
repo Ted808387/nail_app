@@ -20,7 +20,7 @@
       <div v-if="currentStep === 1">
         <h2 class="text-2xl sm:text-3xl font-semibold text-soft-blue-700 mb-5 sm:mb-6 text-center">步驟一：選擇服務</h2>
         <div class="grid grid-cols-1 md:grid-cols-2 gap-4 sm:gap-6">
-          <div v-for="service in availableServices" :key="service.id"
+          <div v-for="service in serviceStore.services" :key="service.id"
             :class="['bg-soft-blue-50 p-4 sm:p-6 rounded-xl shadow-md border cursor-pointer transition duration-300', selectedServiceIds.includes(service.id) ? 'border-soft-blue-600 ring-2 ring-soft-blue-500' : 'border-soft-blue-200 hover:border-soft-blue-400']"
             @click="toggleService(service.id)">
             <h3 class="text-xl sm:text-2xl font-semibold text-soft-blue-800 mb-1">{{ service.name }}</h3>
@@ -46,13 +46,13 @@
         <div class="bg-soft-blue-100 p-4 sm:p-6 rounded-xl mb-6 sm:mb-8 border border-soft-blue-200">
           <p class="text-base sm:text-lg font-semibold text-soft-blue-600 mb-3 sm:mb-4">請選擇預約日期：</p>
           <CustomerCalendar
-            v-if="businessHours && businessHours.length > 0"
+            v-if="businessSettingsStore.settings && businessSettingsStore.settings.business_hours && businessSettingsStore.settings.business_hours.length > 0"
             v-model:selectedDate="selectedDate"
-            :holidays="holidays"
-            :unavailableDates="unavailableDates"
-            :businessHours="businessHours"
-            :bookings="bookings"
-            :bookableTimeSlots="bookableTimeSlots"
+            :holidays="businessSettingsStore.settings.holidays"
+            :unavailableDates="businessSettingsStore.settings.unavailable_dates"
+            :businessHours="businessSettingsStore.settings.business_hours"
+            :bookings="bookingStore.bookings"
+            :bookableTimeSlots="businessSettingsStore.settings.bookable_time_slots"
             :booking-duration="totalDuration"
           />
           <p v-if="errors.date" class="text-red-500 text-sm mb-3 sm:mb-4">{{ errors.date }}</p>
@@ -111,9 +111,9 @@
             class="px-5 sm:px-6 py-2 sm:py-3 bg-gray-300 text-gray-800 text-base sm:text-lg font-semibold rounded-full shadow-md hover:bg-gray-400 transition duration-300">
             上一步
           </button>
-          <button @click="confirmBooking" :disabled="isLoading"
+          <button @click="confirmBooking" :disabled="bookingStore.isLoading"
             class="px-6 sm:px-8 py-2 sm:py-3 bg-soft-blue-600 text-white text-base sm:text-lg font-semibold rounded-full shadow-md hover:bg-soft-blue-700 transition duration-300 disabled:opacity-50 disabled:cursor-not-allowed">
-            {{ isLoading ? '送出中...' : '確認送出' }}
+            {{ bookingStore.isLoading ? '送出中...' : '確認送出' }}
           </button>
         </div>
       </div>
@@ -142,14 +142,20 @@
 import { ref, computed, onMounted } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
 import { useNotification } from '../../composables/useNotification';
-import { fetchServices, fetchBookings, saveBooking, fetchBusinessSettings } from '../../api'; // 引入 API 函數
 import CustomerCalendar from '../../components/CustomerCalendar.vue';
-import { useAuth } from '../../composables/useAuth'; // 引入 useAuth
+import { useAuthStore } from '../../stores/auth';
+import { useBookingStore } from '../../stores/booking';
+import { useServiceStore } from '../../stores/service';
+import { useBusinessSettingsStore } from '../../stores/businessSettings';
 
 const route = useRoute();
 const router = useRouter();
 const { showSuccess, showError, showInfo } = useNotification();
-const { currentUserId } = useAuth(); // 獲取當前用戶 ID
+
+const authStore = useAuthStore();
+const bookingStore = useBookingStore();
+const serviceStore = useServiceStore();
+const businessSettingsStore = useBusinessSettingsStore();
 
 const currentStep = ref(1);
 const selectedServiceIds = ref([]);
@@ -161,27 +167,70 @@ const customerPhone = ref('');
 const bookingNotes = ref('');
 const bookingId = ref(''); // 預約成功後生成的 ID
 const errors = ref({});
-const isLoading = ref(false); // 新增載入狀態
-const dataLoaded = ref(false); // 新增數據載入狀態
+const isLoading = ref(false); // 新增載入狀態，用於非 store 相關的異步操作
 
-const availableServices = ref([]); // 初始化為空陣列
-const bookings = ref([]); // 初始化為空陣列
-const businessHours = ref([]); // 從營業設定載入
-const holidays = ref([]); // 從營業設定載入
-const unavailableDates = ref([]); // 從營業設定載入
-const bookableTimeSlots = ref([]); // 從營業設定載入
+// 輔助函數：將 Date 物件格式化為 YYYY-MM-DD 字串 (本地日期)
+function formatDateToYYYYMMDD(date) {
+  const year = date.getFullYear();
+  const month = (date.getMonth() + 1).toString().padStart(2, '0'); // 月份是從 0 開始的
+  const day = date.getDate().toString().padStart(2, '0');
+  return `${year}-${month}-${day}`;
+}
 
-// 模擬可用時間 (實際應根據日期和服務時長從後端計算)
-const availableTimes = ref([]); // 實際應根據日期和服務時長從後端計算
+// 從 URL 參數獲取預選服務
+onMounted(async () => {
+  try {
+    await Promise.all([
+      serviceStore.fetchServices(),
+      bookingStore.fetchBookings(),
+      businessSettingsStore.fetchBusinessSettings(),
+    ]);
+
+    if (route.query.service) {
+      const serviceId = parseInt(route.query.service);
+      if (serviceStore.services.some(s => s.id === serviceId)) {
+        selectedServiceIds.value.push(serviceId);
+      }
+    }
+  } catch (error) {
+    console.error('載入數據失敗:', error);
+    showError('載入數據失敗，請稍後再試。');
+  }
+});
+
+// 計算總時長
+const totalDuration = computed(() => {
+  return selectedServiceIds.value.reduce((sum, id) => {
+    const service = serviceStore.services.find(s => s.id === id);
+    return sum + (service ? service.max_duration : 0);
+  }, 0);
+});
+
+// 計算總價格
+const totalPrice = computed(() => {
+  return selectedServiceIds.value.reduce((sum, id) => {
+    const service = serviceStore.services.find(s => s.id === id);
+    return sum + (service ? service.price : 0);
+  }, 0);
+});
+
+// 獲取已選服務的詳細資訊
+const selectedServicesDetails = computed(() => {
+  return selectedServiceIds.value.map(id => serviceStore.services.find(s => s.id === id)).filter(Boolean);
+});
 
 // 根據營業時間和可預約時間段落生成可選時間
 const filteredAvailableTimes = computed(() => {
-  if (!selectedDate.value || !isDateBookable.value(selectedDate.value) || businessHours.value.length === 0) {
+  const businessHours = businessSettingsStore.settings?.business_hours || [];
+  const bookableTimeSlots = businessSettingsStore.settings?.bookable_time_slots || [];
+  const bookings = bookingStore.bookings; // 從 store 獲取 bookings
+
+  if (!selectedDate.value || !isDateBookable.value(selectedDate.value) || businessHours.length === 0) {
     return [];
   }
 
   const dayOfWeek = new Date(selectedDate.value).getDay(); // 0 for Sunday, 1 for Monday, etc.
-  const businessDay = businessHours.value.find(d => d.id === (dayOfWeek === 0 ? 7 : dayOfWeek));
+  const businessDay = businessHours.find(d => d.id === (dayOfWeek === 0 ? 7 : dayOfWeek));
 
   if (!businessDay || businessDay.isClosed) {
     return [];
@@ -194,7 +243,7 @@ const filteredAvailableTimes = computed(() => {
   const endHour = parseInt(businessDay.close.split(':')[0]);
   const endMinute = parseInt(businessDay.close.split(':')[1]);
 
-  if (bookableTimeSlots.value.length === 0) {
+  if (bookableTimeSlots.length === 0) {
     // 沒有設定可預約時間段，則生成營業時間內的所有時段
     let currentTime = new Date();
     currentTime.setHours(startHour, startMinute, 0, 0);
@@ -205,13 +254,22 @@ const filteredAvailableTimes = computed(() => {
     while (currentTime < endTime) { // 注意這裡改為 < endTime，確保結束時間不包含
       const hour = currentTime.getHours().toString().padStart(2, '0');
       const minute = currentTime.getMinutes().toString().padStart(2, '0');
-      times.push(`${hour}:${minute}`);
+      const timeString = `${hour}:${minute}`;
+
+      // 計算從當前時段開始，加上服務時長後的結束時間
+      const potentialEndTime = new Date(currentTime.getTime() + totalDuration.value * 60 * 1000);
+
+      // 檢查 potentialEndTime 是否在 slotEndTime 之前或等於 slotEndTime
+      if (potentialEndTime <= endTime) { // 這裡應該是與營業結束時間比較
+        times.push(timeString);
+      }
+
       currentTime.setMinutes(currentTime.getMinutes() + 30);
     }
 
   } else {
     // 有設定可預約時間段，則在這些時間段內生成 30 分鐘的時段，並檢查是否能容納服務時長
-    bookableTimeSlots.value.forEach(slot => {
+    bookableTimeSlots.forEach(slot => {
       const slotStartHour = parseInt(slot.start.split(':')[0]);
       const slotStartMinute = parseInt(slot.start.split(':')[1]);
       const slotEndHour = parseInt(slot.end.split(':')[0]);
@@ -242,11 +300,7 @@ const filteredAvailableTimes = computed(() => {
   }
 
   // 過濾掉已經被預約的時間
-  const bookedTimes = bookings.value
-    .filter(b => b.date === selectedDate.value)
-    .map(b => b.time);
-
-  const bookedTimesForSelectedDate = bookings.value
+  const bookedTimesForSelectedDate = bookings
     .filter(b => b.date === selectedDate.value)
     .map(b => b.time);
 
@@ -257,7 +311,13 @@ const filteredAvailableTimes = computed(() => {
 });
 
 const isDateBookable = computed(() => (dateString) => {
-  if (businessHours.value.length === 0) {
+  const businessHours = businessSettingsStore.settings?.business_hours || [];
+  const holidays = businessSettingsStore.settings?.holidays || [];
+  const unavailableDates = businessSettingsStore.settings?.unavailable_dates || [];
+  const bookableTimeSlots = businessSettingsStore.settings?.bookable_time_slots || [];
+  const bookings = bookingStore.bookings; // 從 store 獲取 bookings
+
+  if (businessHours.length === 0) {
     return false; // 如果營業時間未載入，則所有日期都不可預約
   }
   // 檢查是否為過去的日期
@@ -270,77 +330,69 @@ const isDateBookable = computed(() => (dateString) => {
   }
 
   // 檢查是否為公休日
-  if (holidays.value.includes(dateString)) {
+  if (holidays.includes(dateString)) {
     return false;
   }
 
   // 檢查是否為不可預約日期
-  if (unavailableDates.value.includes(dateString)) {
+  if (unavailableDates.includes(dateString)) {
     return false;
   }
 
   // 檢查當天是否有可預約的時間段
   const dayOfWeek = new Date(dateString).getDay(); // 0 for Sunday, 1 for Monday, etc.
-  const businessDay = businessHours.value.find(d => d.id === (dayOfWeek === 0 ? 7 : dayOfWeek));
+  const businessDay = businessHours.find(d => d.id === (dayOfWeek === 0 ? 7 : dayOfWeek));
 
   if (!businessDay || businessDay.isClosed) {
     return false;
   }
 
-  // 如果有設定可預約時間段，則檢查當天是否在這些時間段內
-  if (bookableTimeSlots.value.length > 0) {
-    // 這裡需要更複雜的邏輯來判斷是否有足夠的連續時間段來容納服務時長
-    // 為了簡化，目前只檢查是否有任何可預約時間段
-    return true; // 暫時假設只要有設定時間段就可預約
+  // 檢查是否有足夠的連續空閒時段來容納服務時長
+  const potentialTimes = [];
+  if (bookableTimeSlots.length === 0) {
+    // 如果沒有設定可預約時間段，則生成營業時間內的所有時段
+    let currentTime = new Date();
+    currentTime.setHours(parseInt(businessDay.open.split(':')[0]), parseInt(businessDay.open.split(':')[1]), 0, 0);
+    const endTime = new Date();
+    endTime.setHours(parseInt(businessDay.close.split(':')[0]), parseInt(businessDay.close.split(':')[1]), 0, 0);
+
+    while (currentTime < endTime) {
+      potentialTimes.push(formatDateToYYYYMMDD(currentTime) + ' ' + currentTime.toTimeString().slice(0, 5));
+      currentTime.setMinutes(currentTime.getMinutes() + 30);
+    }
+  } else {
+    // 有設定可預約時間段，則在這些時間段內生成時段
+    bookableTimeSlots.forEach(slot => {
+      let currentTime = new Date();
+      currentTime.setHours(parseInt(slot.start.split(':')[0]), parseInt(slot.start.split(':')[1]), 0, 0);
+      const slotEndTime = new Date();
+      slotEndTime.setHours(parseInt(slot.end.split(':')[0]), parseInt(slot.end.split(':')[1]), 0, 0);
+
+      while (currentTime < slotEndTime) {
+        potentialTimes.push(formatDateToYYYYMMDD(currentTime) + ' ' + currentTime.toTimeString().slice(0, 5));
+        currentTime.setMinutes(currentTime.getMinutes() + 30);
+      }
+    });
   }
 
-  return true;
-});
-
-// 從 URL 參數獲取預選服務
-onMounted(async () => {
-  try {
-    availableServices.value = await fetchServices(); // 從 API 載入服務數據
-    bookings.value = await fetchBookings(); // 從 API 載入預約數據
-    const businessSettings = await fetchBusinessSettings(); // 載入營業設定
-    console.log('Fetched businessSettings:', businessSettings); // DEBUG
-    businessHours.value = businessSettings.businessHours;
-    holidays.value = businessSettings.holidays;
-    unavailableDates.value = businessSettings.unavailableDates;
-    bookableTimeSlots.value = businessSettings.bookableTimeSlots;
-    console.log('Assigned businessHours:', businessHours.value); // DEBUG
-
-    if (route.query.service) {
-      const serviceId = parseInt(route.query.service);
-      if (availableServices.value.some(s => s.id === serviceId)) {
-        selectedServiceIds.value.push(serviceId);
+  // 檢查是否有足夠的連續時段
+  for (let i = 0; i < potentialTimes.length; i++) {
+    const startTime = new Date(potentialTimes[i]);
+    let isAvailable = true;
+    for (let j = 0; j < totalDuration.value; j += 30) { // 以 30 分鐘為單位檢查
+      const checkTime = new Date(startTime.getTime() + j * 60 * 1000);
+      const checkTimeString = formatDateToYYYYMMDD(checkTime) + ' ' + checkTime.toTimeString().slice(0, 5);
+      if (bookings.some(b => b.date === formatDateToYYYYMMDD(checkTime) && b.time === checkTime.toTimeString().slice(0, 5))) {
+        isAvailable = false;
+        break;
       }
     }
-  } catch (error) {
-    console.error('載入數據失敗:', error);
-    showError('載入數據失敗，請稍後再試。');
+    if (isAvailable) {
+      return true;
+    }
   }
-});
 
-// 計算總時長
-const totalDuration = computed(() => {
-  return selectedServiceIds.value.reduce((sum, id) => {
-    const service = availableServices.value.find(s => s.id === id);
-    return sum + (service ? service.max_duration : 0);
-  }, 0);
-});
-
-// 計算總價格
-const totalPrice = computed(() => {
-  return selectedServiceIds.value.reduce((sum, id) => {
-    const service = availableServices.value.find(s => s.id === id);
-    return sum + (service ? service.price : 0);
-  }, 0);
-});
-
-// 獲取已選服務的詳細資訊
-const selectedServicesDetails = computed(() => {
-  return selectedServiceIds.value.map(id => availableServices.value.find(s => s.id === id)).filter(Boolean);
+  return false;
 });
 
 // 切換服務選擇
@@ -386,7 +438,7 @@ async function confirmBooking() {
     return;
   }
 
-  isLoading.value = true; // 開始載入
+  // isLoading.value = true; // 開始載入
   console.log('提交預約資訊:', {
     services: selectedServiceIds.value,
     date: selectedDate.value,
@@ -402,23 +454,23 @@ async function confirmBooking() {
   try {
     // 將新預約添加到 bookings 陣列並保存
     const newBooking = {
-      user_id: currentUserId.value,
+      user_id: authStore.currentUserId, // 從 authStore 獲取用戶 ID
       service_id: selectedServiceIds.value[0], // 假設一次只能預約一個服務
       date: selectedDate.value,
       time: selectedTime.value,
       status: 'pending', // 新預約預設為待處理
       notes: bookingNotes.value === '' ? null : bookingNotes.value,
     };
-    const savedBooking = await saveBooking(newBooking); // 調用 API 函數
+    const savedBooking = await bookingStore.saveBooking(newBooking); // 調用 Pinia Store 的 action
 
     bookingId.value = savedBooking.id;
     showSuccess('預約成功！'); // 使用通知
     currentStep.value = 4; // 進入成功頁
   } catch (error) {
     console.error('預約失敗:', error);
-    showError('預約失敗，請稍後再試。');
+    showError(bookingStore.error || '預約失敗，請稍後再試。');
   } finally {
-    isLoading.value = false; // 結束載入
+    // isLoading.value = false; // 結束載入
   }
 }
 

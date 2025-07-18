@@ -51,7 +51,7 @@
         <h2 class="text-2xl sm:text-3xl font-bold text-soft-blue-800 mb-5 sm:mb-6">預約詳情</h2>
         <div class="space-y-3 text-base sm:text-lg text-soft-blue-700">
           <p><strong>預約編號：</strong> {{ selectedBooking.id }}</p>
-          <p><strong>服務項目：</strong> {{ selectedBooking.serviceName }}</p>
+          <p><strong>服務項目：：</strong> {{ selectedBooking.serviceName }}</p>
           <p><strong>預約日期：</strong> {{ selectedBooking.date }}</p>
           <p><strong>預約時間：</strong> {{ selectedBooking.time }}</p>
           <p><strong>狀態：</strong> <span :class="getStatusClass(selectedBooking.status)">{{ getStatusText(selectedBooking.status) }}</span></p>
@@ -62,16 +62,16 @@
           </p>
         </div>
         <div class="mt-6 sm:mt-8 flex flex-col sm:flex-row justify-end space-y-3 sm:space-y-0 sm:space-x-4">
-          <button v-if="!isEditing && isAdmin" @click="startEditing" :disabled="isLoading"
+          <button v-if="!isEditing && isAdmin" @click="startEditing" :disabled="bookingStore.isLoading"
             class="px-5 py-2 bg-blue-500 text-white rounded-full shadow-md hover:bg-blue-600 transition duration-300 disabled:opacity-50 disabled:cursor-not-allowed">
             編輯
           </button>
           <template v-else-if="isEditing && isAdmin">
-            <button @click="saveChanges" :disabled="isLoading"
+            <button @click="saveChanges" :disabled="bookingStore.isLoading"
               class="px-5 py-2 bg-green-500 text-white rounded-full shadow-md hover:bg-green-600 transition duration-300 disabled:opacity-50 disabled:cursor-not-allowed">
-              {{ isLoading ? '儲存中...' : '儲存' }}
+              {{ bookingStore.isLoading ? '儲存中...' : '儲存' }}
             </button>
-            <button @click="cancelEditing" :disabled="isLoading"
+            <button @click="cancelEditing" :disabled="bookingStore.isLoading"
               class="px-5 py-2 bg-gray-300 text-gray-800 rounded-full shadow-md hover:bg-gray-400 transition duration-300 disabled:opacity-50 disabled:cursor-not-allowed">
               取消
             </button>
@@ -79,9 +79,9 @@
           <button @click="closeModal" class="px-5 py-2 bg-gray-300 text-gray-800 rounded-full shadow-md hover:bg-gray-400 transition duration-300">
             關閉
           </button>
-          <button v-if="isUpcoming(selectedBooking) && !isEditing" @click="confirmCancel(selectedBooking.id)" :disabled="isLoading"
+          <button v-if="isUpcoming(selectedBooking) && !isEditing" @click="confirmCancel(selectedBooking.id)" :disabled="bookingStore.isLoading"
             class="px-5 py-2 bg-red-500 text-white rounded-full shadow-md hover:bg-red-600 transition duration-300 disabled:opacity-50">
-            {{ isLoading ? '取消中...' : '取消預約' }}
+            {{ bookingStore.isLoading ? '取消中...' : '取消預約' }}
           </button>
         </div>
       </div>
@@ -93,23 +93,24 @@
 <script setup>
 import { ref, computed, onMounted } from 'vue';
 import { useNotification } from '../../composables/useNotification';
-import { fetchBookings, saveBooking, updateBooking } from '../../api'; // 引入 API 函數
-import { useAuth } from '../../composables/useAuth'; // 引入 useAuth
+import { useAuthStore } from '../../stores/auth'; // 引入 useAuthStore
+import { useBookingStore } from '../../stores/booking'; // 引入 useBookingStore
 
-const { isAdmin } = useAuth(); // 使用 useAuth
+const authStore = useAuthStore(); // 使用 authStore
+const bookingStore = useBookingStore(); // 使用 bookingStore
 
-const bookings = ref([]); // 初始化為空陣列
-const isLoading = ref(false); // 新增載入狀態
-const isModalOpen = ref(false); // 新增：控制 Modal 開關
-const selectedBooking = ref(null); // 新增：儲存選中的預約詳情
-const isEditing = ref(false); // 新增：控制編輯模式
-const originalBooking = ref(null); // 新增：儲存原始數據，以便取消編輯時恢復
+const isAdmin = computed(() => authStore.isAdmin); // 從 authStore 獲取 isAdmin
+
+const isModalOpen = ref(false); // 控制 Modal 開關
+const selectedBooking = ref(null); // 儲存選中的預約詳情
+const isEditing = ref(false); // 控制編輯模式
+const originalBooking = ref(null); // 儲存原始數據，以便取消編輯時恢復
 const { showSuccess, showError } = useNotification(); // 使用通知組合式函數
 
 // 組件掛載時載入數據
 onMounted(async () => {
   try {
-    bookings.value = await fetchBookings(); // 從 API 載入預約數據
+    await bookingStore.fetchBookings(); // 從 Pinia Store 載入預約數據
   } catch (error) {
     console.error('載入預約失敗:', error);
     showError('載入預約失敗，請稍後再試。');
@@ -119,7 +120,7 @@ onMounted(async () => {
 const upcomingBookings = computed(() => {
   const today = new Date();
   today.setHours(0, 0, 0, 0);
-  return bookings.value.filter(booking => {
+  return bookingStore.bookings.filter(booking => {
     const bookingDate = new Date(booking.date);
     return bookingDate >= today && booking.status !== 'cancelled' && booking.status !== 'completed';
   });
@@ -128,7 +129,7 @@ const upcomingBookings = computed(() => {
 const pastBookings = computed(() => {
   const today = new Date();
   today.setHours(0, 0, 0, 0);
-  return bookings.value.filter(booking => {
+  return bookingStore.bookings.filter(booking => {
     const bookingDate = new Date(booking.date);
     return bookingDate < today || booking.status === 'cancelled' || booking.status === 'completed';
   });
@@ -176,22 +177,18 @@ function startEditing() {
 }
 
 async function saveChanges() {
-  isLoading.value = true;
   try {
     const updatedBookingData = {
       notes: selectedBooking.value.notes,
     };
-    await updateBooking(selectedBooking.value.id, updatedBookingData); // 調用新的 updateBooking API
+    await bookingStore.updateBooking(selectedBooking.value.id, updatedBookingData); // 調用 Pinia Store 的 updateBooking action
     showSuccess('預約備註已成功更新！');
     isEditing.value = false;
     originalBooking.value = null; // 清空原始數據
-    // 重新載入預約數據以確保最新狀態
-    bookings.value = await fetchBookings();
+    // 不需要重新載入，Pinia Store 會自動更新
   } catch (error) {
     console.error('儲存變更失敗:', error);
-    showError('儲存變更失敗，請稍後再試。');
-  } finally {
-    isLoading.value = false;
+    showError(bookingStore.error || '儲存變更失敗，請稍後再試。');
   }
 }
 
@@ -208,19 +205,14 @@ function confirmCancel(bookingId) {
 }
 
 async function cancelBooking(bookingId) {
-  isLoading.value = true; // 開始載入
   console.log('嘗試取消預約:', bookingId);
   try {
-    await updateBooking(bookingId, { status: 'cancelled' }); // 調用 updateBooking API
+    await bookingStore.updateBooking(bookingId, { status: 'cancelled' }); // 調用 Pinia Store 的 updateBooking action
     showSuccess('預約已成功取消！'); // 使用通知
-    // 重新載入預約數據以確保最新狀態
-    bookings.value = await fetchBookings();
     closeModal(); // 取消後關閉模態框
   } catch (error) {
     console.error('取消預約失敗:', error);
-    showError('取消預約失敗，請稍後再試。'); // 使用通知
-  } finally {
-    isLoading.value = false;
+    showError(bookingStore.error || '取消預約失敗，請稍後再試。'); // 使用通知
   }
 }
 </script>

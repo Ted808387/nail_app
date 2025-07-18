@@ -1,6 +1,6 @@
 // src/api/index.js
 import axios from 'axios';
-import { useAuth } from '../composables/useAuth';
+import { useAuthStore } from '../stores/auth'; // 引入 Pinia 的 auth store
 
 const API_BASE_URL = 'http://127.0.0.1:8000'; // 後端 FastAPI 服務的地址
 
@@ -34,41 +34,31 @@ apiClient.interceptors.response.use(
   },
   (error) => {
     if (error.response && error.response.status === 401) {
-      // 處理 401 Unauthorized 錯誤，例如導向登入頁面
-      // 這裡不能直接使用 useAuth()，因為它不是在組件內部
-      // 可以考慮發送一個自定義事件，讓 App.vue 或路由守衛處理登出
-      console.warn('收到 401 Unauthorized，請處理登出邏輯。');
-      // 臨時解決方案：直接清除 localStorage 中的 token 並重新導向
-      localStorage.removeItem('currentUserId');
-      localStorage.removeItem('currentUserRole');
-      // 遍歷並移除所有 token
-      for (let i = 0; i < localStorage.length; i++) {
-        const key = localStorage.key(i);
-        if (key.startsWith('token_')) {
-          localStorage.removeItem(key);
-        }
-      }
+      const authStore = useAuthStore(); // 在這裡獲取 auth store 實例
+      authStore.logout(); // 呼叫 Pinia store 的 logout action
       window.location.href = '/account/signin'; // 強制重新導向
     }
     return Promise.reject(error);
   }
 );
 
-// 模擬網路延遲 (不再需要，因為是真實 API 呼叫)
-// const simulateDelay = (ms = 800) => new Promise(resolve => setTimeout(resolve, ms));
-
 // --- 預約 API ---
-export const fetchBookings = async () => {
+export const fetchMyBookings = async () => {
   try {
-    const { isAdmin } = useAuth(); // 獲取 isAdmin 狀態
-    let url = '/bookings/my'; // 預設為普通用戶的預約
-    if (isAdmin.value) {
-      url = '/bookings/'; // 如果是管理員，獲取所有預約
-    }
-    const response = await apiClient.get(url);
+    const response = await apiClient.get('/bookings/my');
     return response.data;
   } catch (error) {
-    console.error('Error fetching bookings:', error);
+    console.error('Error fetching my bookings:', error);
+    throw error;
+  }
+};
+
+export const fetchAllBookings = async () => {
+  try {
+    const response = await apiClient.get('/bookings/');
+    return response.data;
+  } catch (error) {
+    console.error('Error fetching all bookings:', error);
     throw error;
   }
 };
@@ -264,6 +254,16 @@ export const changeUserPassword = async (passwords) => {
     return response.data;
   } catch (error) {
     console.error('Error changing password:', error);
+    throw error;
+  }
+};
+
+export const logoutUser = async () => {
+  try {
+    await apiClient.post('/auth/logout');
+    return { success: true };
+  } catch (error) {
+    console.error('Error logging out user:', error);
     throw error;
   }
 };

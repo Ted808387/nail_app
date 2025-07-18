@@ -5,11 +5,11 @@
     <div class="max-w-2xl mx-auto bg-white rounded-2xl shadow-lg p-8 border border-soft-blue-200">
       <!-- 頭像上傳區 (Placeholder) -->
       <div class="flex flex-col items-center mb-8 pb-8 border-b border-soft-blue-200">
-        <img :src="profile.avatar || 'https://via.placeholder.com/150?text=Avatar'" alt="User Avatar"
+        <img :src="userProfileStore.userProfile?.avatar || 'https://via.placeholder.com/150?text=Avatar'" alt="User Avatar"
           class="w-32 h-32 rounded-full object-cover mb-4 shadow-md border-2 border-soft-blue-300">
-        <button @click="uploadAvatar" :disabled="isLoading"
+        <button @click="uploadAvatar" :disabled="userProfileStore.isLoading"
           class="px-6 py-2 bg-soft-blue-500 text-white rounded-full shadow-md hover:bg-soft-blue-600 transition duration-300 disabled:opacity-50 disabled:cursor-not-allowed">
-          {{ isLoading ? '上傳中...' : '上傳頭像' }}
+          {{ userProfileStore.isLoading ? '上傳中...' : '上傳頭像' }}
         </button>
         <input type="file" ref="avatarInput" @change="handleAvatarChange" accept="image/*" class="hidden">
       </div>
@@ -18,23 +18,23 @@
         <h2 class="text-3xl font-semibold text-soft-blue-700 mb-6">修改基本資料</h2>
         <div class="mb-5">
           <label for="name" class="block text-soft-blue-700 text-sm font-bold mb-2">姓名</label>
-          <input type="text" id="name" v-model="profile.name"
+          <input type="text" id="name" v-model="userProfileStore.userProfile.name"
             class="shadow appearance-none border border-soft-blue-300 rounded-xl w-full py-3 px-4 text-gray-700 leading-tight focus:outline-none focus:shadow-outline focus:border-soft-blue-400">
         </div>
         <div class="mb-5">
           <label for="email" class="block text-soft-blue-700 text-sm font-bold mb-2">Email</label>
-          <input type="email" id="email" v-model="profile.email" disabled
+          <input type="email" id="email" v-model="userProfileStore.userProfile.email" disabled
             class="shadow appearance-none border border-soft-blue-300 rounded-xl w-full py-3 px-4 text-gray-700 bg-gray-100 cursor-not-allowed leading-tight">
           <p class="text-sm text-soft-blue-500 mt-1">Email 為帳號，不可修改。</p>
         </div>
         <div class="mb-6">
           <label for="phone" class="block text-soft-blue-700 text-sm font-bold mb-2">聯絡電話</label>
-          <input type="tel" id="phone" v-model="profile.phone"
+          <input type="tel" id="phone" v-model="userProfileStore.userProfile.phone_number"
             class="shadow appearance-none border border-soft-blue-300 rounded-xl w-full py-3 px-4 text-gray-700 leading-tight focus:outline-none focus:shadow-outline focus:border-soft-blue-400">
         </div>
-        <button type="submit" :disabled="isLoading"
+        <button type="submit" :disabled="userProfileStore.isLoading"
           class="px-8 py-3 bg-soft-blue-600 text-white text-lg font-semibold rounded-full shadow-md hover:bg-soft-blue-700 transition duration-300 disabled:opacity-50 disabled:cursor-not-allowed">
-          {{ isLoading ? '儲存中...' : '儲存變更' }}
+          {{ userProfileStore.isLoading ? '儲存中...' : '儲存變更' }}
         </button>
       </form>
 
@@ -57,9 +57,9 @@
             class="shadow appearance-none border border-soft-blue-300 rounded-xl w-full py-3 px-4 text-gray-700 leading-tight focus:outline-none focus:shadow-outline focus:border-soft-blue-400">
           <p v-if="passwordErrors.confirmNew" class="text-red-500 text-xs italic mt-1">{{ passwordErrors.confirmNew }}</p>
         </div>
-        <button type="submit" :disabled="isLoading"
+        <button type="submit" :disabled="userProfileStore.isLoading"
           class="px-8 py-3 bg-soft-blue-600 text-white text-lg font-semibold rounded-full shadow-md hover:bg-soft-blue-700 transition duration-300 disabled:opacity-50 disabled:cursor-not-allowed">
-          {{ isLoading ? '更新中...' : '更新密碼' }}
+          {{ userProfileStore.isLoading ? '更新中...' : '更新密碼' }}
         </button>
       </form>
 
@@ -77,9 +77,9 @@
             <span class="ml-2 text-soft-blue-700 text-lg">簡訊通知</span>
           </label>
         </div>
-        <button @click="saveNotificationSettings" :disabled="isLoading"
+        <button @click="saveNotificationSettings" :disabled="userProfileStore.isLoading"
           class="px-8 py-3 bg-soft-blue-600 text-white text-lg font-semibold rounded-full shadow-md hover:bg-soft-blue-700 transition duration-300 disabled:opacity-50 disabled:cursor-not-allowed">
-          {{ isLoading ? '儲存中...' : '儲存通知設定' }}
+          {{ userProfileStore.isLoading ? '儲存中...' : '儲存通知設定' }}
         </button>
       </section>
     </div>
@@ -87,17 +87,14 @@
 </template>
 
 <script setup>
-import { ref, reactive, onMounted } from 'vue';
+import { ref, reactive, onMounted, watch } from 'vue';
 import { useNotification } from '../../composables/useNotification';
-import { fetchUserById, updateUserProfile, changeUserPassword } from '../../api';
+import { useUserProfileStore } from '../../stores/userProfile'; // 引入 userProfile store
 
-const profile = ref({
-  name: '',
-  email: '',
-  phone: '',
-  avatar: ''
-});
+const userProfileStore = useUserProfileStore(); // 使用 userProfile store
+const { showSuccess, showError } = useNotification(); // 使用通知組合式函數
 
+// 密碼相關的響應式變數
 const password = reactive({
   current: '',
   new: '',
@@ -115,38 +112,33 @@ const notificationSettings = reactive({
 });
 
 const avatarInput = ref(null); // 用於檔案輸入的引用
-const isLoading = ref(false); // 新增載入狀態
-const { showSuccess, showError } = useNotification(); // 使用通知組合式函數
 
+// 在組件掛載時載入用戶資料
 onMounted(async () => {
-  isLoading.value = true;
-  try {
-    const userData = await fetchUserById();
-    profile.value.name = userData.name;
-    profile.value.email = userData.email;
-    profile.value.phone = userData.phone_number; // 注意這裡的欄位名稱對應後端
-  } catch (error) {
-    console.error('載入用戶資料失敗:', error);
-    showError('載入用戶資料失敗，請稍後再試。');
-  } finally {
-    isLoading.value = false;
-  }
+  await userProfileStore.fetchUserProfile();
 });
 
+// 監聽 userProfileStore.userProfile 的變化，並更新本地的 profile 數據
+// 由於現在直接綁定到 store 的 userProfile，這個 watch 已經不需要了
+// watch(() => userProfileStore.userProfile, (newProfile) => {
+//   if (newProfile) {
+//     profile.name = newProfile.name;
+//     profile.email = newProfile.email;
+//     profile.phone = newProfile.phone_number;
+//   }
+// }, { immediate: true });
+
 async function updateProfile() {
-  isLoading.value = true; // 開始載入
   try {
     const updatedData = {
-      name: profile.value.name,
-      phone_number: profile.value.phone, // 注意這裡的欄位名稱對應後端
+      name: userProfileStore.userProfile.name,
+      phone_number: userProfileStore.userProfile.phone_number, // 注意這裡的欄位名稱對應後端
     };
-    await updateUserProfile(updatedData);
+    await userProfileStore.updateUserProfile(updatedData);
     showSuccess('個人資料已儲存！');
   } catch (error) {
     console.error('更新個人資料失敗:', error);
-    showError('更新個人資料失敗，請稍後再試。');
-  } finally {
-    isLoading.value = false; // 結束載入
+    showError(userProfileStore.error || '更新個人資料失敗，請稍後再試。');
   }
 }
 
@@ -179,27 +171,23 @@ async function changePassword() {
     return;
   }
 
-  isLoading.value = true; // 開始載入
   try {
     const passwordData = {
       current_password: password.current,
       new_password: password.new,
     };
-    await changeUserPassword(passwordData);
+    await userProfileStore.changeUserPassword(passwordData);
     showSuccess('密碼已成功更新！');
     password.current = '';
     password.new = '';
     password.confirmNew = '';
   } catch (error) {
     console.error('變更密碼失敗:', error);
-    showError('變更密碼失敗，請稍後再試。');
-  } finally {
-    isLoading.value = false; // 結束載入
+    showError(userProfileStore.error || '變更密碼失敗，請稍後再試。');
   }
 }
 
 async function saveNotificationSettings() {
-  isLoading.value = true; // 開始載入
   console.log('儲存通知設定:', notificationSettings);
   try {
     // 在此處加入呼叫後端 API 的邏輯
@@ -208,8 +196,24 @@ async function saveNotificationSettings() {
   } catch (error) {
     console.error('儲存通知設定失敗:', error);
     showError('儲存通知設定失敗，請稍後再試。');
-  } finally {
-    isLoading.value = false; // 結束載入
+  }
+}
+
+// 頭像上傳相關函數 (保持不變，因為這部分沒有直接的 API 串接)
+function uploadAvatar() {
+  avatarInput.value.click();
+}
+
+function handleAvatarChange(event) {
+  const file = event.target.files[0];
+  if (file) {
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      // profile.avatar = e.target.result; // 直接更新到 store 的 userProfile.avatar
+      // 這裡需要考慮如何將頭像上傳到後端，目前沒有對應的 API
+      showSuccess('頭像已選取，但上傳功能尚未實作。');
+    };
+    reader.readAsDataURL(file);
   }
 }
 </script>

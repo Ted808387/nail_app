@@ -20,13 +20,16 @@
             <tr v-for="client in filteredClients" :key="client.id" class="border-b border-soft-blue-100 last:border-b-0">
               <td class="py-2 sm:py-3 px-3 sm:px-4 text-soft-blue-700 text-xs sm:text-sm">{{ client.name }}</td>
               <td class="py-2 sm:py-3 px-3 sm:px-4 text-soft-blue-700 text-xs sm:text-sm">{{ client.email }}</td>
-              <td class="py-2 sm:py-3 px-3 sm:px-4 text-soft-blue-700 text-xs sm:text-sm">{{ client.phone }}</td>
+              <td class="py-2 sm:py-3 px-3 sm:px-4 text-soft-blue-700 text-xs sm:text-sm">{{ client.phone_number }}</td>
               <td class="py-2 sm:py-3 px-3 sm:px-4">
                 <button @click="viewClientDetails(client)"
                   class="px-3 py-1 bg-blue-500 text-white rounded-full text-xs hover:bg-blue-600 transition duration-300">
                   查看詳情
                 </button>
               </td>
+            </tr>
+            <tr v-if="clientStore.clients.length === 0">
+              <td colspan="4" class="py-6 sm:py-8 text-center text-soft-blue-600 text-base sm:text-lg">目前沒有客戶資料。</td>
             </tr>
           </tbody>
         </table>
@@ -56,16 +59,16 @@
           <p class="text-soft-blue-700 text-base sm:text-lg"><strong>上次預約:</strong> {{ selectedClient.lastBookingDate }}</p>
 
           <div class="mt-6 sm:mt-8 flex justify-end space-x-4">
-            <button v-if="!isEditing" @click="startEditing" :disabled="isLoading"
+            <button v-if="!isEditing" @click="startEditing" :disabled="clientStore.isLoading"
               class="px-6 py-2 bg-blue-500 text-white rounded-full shadow-md hover:bg-blue-600 transition duration-300 disabled:opacity-50 disabled:cursor-not-allowed">
               編輯
             </button>
             <template v-else>
-              <button @click="saveChanges" :disabled="isLoading"
+              <button @click="saveChanges" :disabled="clientStore.isLoading"
                 class="px-6 py-2 bg-green-500 text-white rounded-full shadow-md hover:bg-green-600 transition duration-300 disabled:opacity-50 disabled:cursor-not-allowed">
-                {{ isLoading ? '儲存中...' : '儲存' }}
+                {{ clientStore.isLoading ? '儲存中...' : '儲存' }}
               </button>
-              <button @click="cancelEditing" :disabled="isLoading"
+              <button @click="cancelEditing" :disabled="clientStore.isLoading"
                 class="px-6 py-2 bg-gray-300 text-gray-800 rounded-full shadow-md hover:bg-gray-400 transition duration-300 disabled:opacity-50 disabled:cursor-not-allowed">
                 取消
               </button>
@@ -83,13 +86,13 @@
 <script setup>
 import { ref, computed, onMounted } from 'vue';
 import { useNotification } from '../../composables/useNotification';
-import { fetchClients, updateClient } from '../../api'; // 引入 API 函數
+import { useClientStore } from '../../stores/client'; // 引入 useClientStore
 
-const clients = ref([]); // 初始化為空陣列
+const clientStore = useClientStore(); // 使用 clientStore
+
 const searchQuery = ref('');
 const isModalOpen = ref(false); // 控制 Modal 開關
 const selectedClient = ref(null); // 儲存選中的客戶資料
-const isLoading = ref(false); // 新增載入狀態
 const isEditing = ref(false); // 控制編輯模式
 const originalClient = ref(null); // 儲存原始客戶資料，用於取消編輯
 const { showSuccess, showError } = useNotification();
@@ -97,19 +100,19 @@ const { showSuccess, showError } = useNotification();
 // 組件掛載時載入數據
 onMounted(async () => {
   try {
-    clients.value = await fetchClients();
+    await clientStore.fetchClients();
   } catch (error) {
     console.error('載入客戶失敗:', error);
-    showError('載入客戶失敗，請稍後再試。');
+    showError(clientStore.error || '載入客戶失敗，請稍後再試。');
   }
 });
 
 const filteredClients = computed(() => {
   if (!searchQuery.value) {
-    return clients.value;
+    return clientStore.clients; // 從 store 獲取客戶數據
   }
   const query = searchQuery.value.toLowerCase();
-  return clients.value.filter(client =>
+  return clientStore.clients.filter(client =>
     client.name.toLowerCase().includes(query) ||
     client.email.toLowerCase().includes(query)
   );
@@ -121,27 +124,20 @@ function startEditing() {
 }
 
 async function saveChanges() {
-  isLoading.value = true;
   try {
     const updatedClientData = {
+      id: selectedClient.value.id,
       name: selectedClient.value.name,
       phone_number: selectedClient.value.phone_number,
       // email 不可修改，所以不傳遞
     };
-    const updatedClient = await updateClient(selectedClient.value.id, updatedClientData); // 調用 API 函數
-    // 更新 clients 列表中的對應客戶數據
-    const index = clients.value.findIndex(c => c.id === updatedClient.id);
-    if (index !== -1) {
-      clients.value[index] = { ...updatedClient };
-    }
+    await clientStore.updateClient(updatedClientData); // 調用 Pinia Store 的 action
     showSuccess('客戶資料已成功更新！');
     isEditing.value = false;
     originalClient.value = null; // 清空原始數據
   } catch (error) {
     console.error('更新客戶詳情失敗:', error);
-    showError('更新客戶詳情失敗，請稍後再試。');
-  } finally {
-    isLoading.value = false;
+    showError(clientStore.error || '更新客戶詳情失敗，請稍後再試。');
   }
 }
 

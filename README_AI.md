@@ -1,4 +1,4 @@
-# 專案概述 (README_AI.md)
+## 專案概述 (README_AI.md)
 
 **專案名稱:** Sidep App (實際為預約/服務管理系統)
 
@@ -69,7 +69,7 @@
     *   **`SignIn.vue` 和 `SignUp.vue` 已更新為使用 `useAuth.js` 的 `login` 和 `register` 方法來處理用戶認證。**
     *   **`AccountSettings.vue` 已更新為使用 `useAuth.js` 提供的認證狀態。**
     *   **`Dashboard.vue` 已更新為從 `dataService.js` 載入數據 (此處應為從 API 載入，但此處僅記錄 `useAuth` 相關)。**
-    *   **已添加全局導航守衛 (`src/router/index.js`)，確保只有登入用戶才能訪問受保護的路由，並且管理員用戶才能訪問管理員頁面。**
+    *   `src/router/index.js`：已更新路由守衛，限制已登入用戶訪問登入/註冊頁面。✅
 
 10. **模擬 API 層:**
     *   **已創建 `src/api/index.js`，用於提供模擬的 API 請求函數。**
@@ -116,7 +116,6 @@
     *   **客戶端預約日期選擇器優化:** 將 `BookingFlow.vue` 中的日期輸入框替換為自定義的 `CustomerCalendar.vue` 組件，提供更直觀的日曆選擇體驗，並顯示已被預約的日期。
     *   **客戶端日曆組件錯誤修正:** 修正了 `CustomerCalendar.vue` 和 `BookingFlow.vue` 中因數據載入時序和 `ref` 變數存取方式導致的 `TypeError`。
     *   **預約流程步驟二錯誤修正:** 修正了 `BookingFlow.vue` 中選擇服務後點擊「下一步」時的錯誤，確保 `filteredAvailableTimes` 和 `isDateBookable` 在營業設定數據載入完成後才進行計算。
-    *   **預約流程步驟三資訊補齊:** 在 `BookingFlow.vue` 的步驟三中加入了姓名、Email 和電話的輸入框，並修正了總價格的顯示位置。
     *   **預約編號生成優化:** 將預約編號的生成方式調整為 `BOOK` 前綴加上 6 位隨機英數字串，以提高唯一性和可讀性。
     *   **預約時間選擇精細化:**
         *   在 `BookingFlow.vue` 的步驟二中，時間選擇列表現在會顯示所有符合管理員設定的可預約時間段。
@@ -147,10 +146,6 @@
 
 ---
 
-**下一步可能的工作方向 (待確認):**
-*   添加單元測試或端到端測試。
-*   部署應用程式。
-
 ## 前端開發進度
 
 ### 階段一：前端 `dataService` 替換為真實 API 呼叫
@@ -180,119 +175,107 @@
 7.  **替換營業設定相關的 API 呼叫：**
     *   修改了 `src/api/index.js` 中的 `fetchBusinessSettings`、`saveBusinessSettings`、`addHoliday`、`removeHoliday`、`addUnavailableDateApi` 和 `removeUnavailableDateApi` 函數，使其呼叫後端 `/admin/settings` 端點。
 
-**目前狀態：**
+---
 
-*   前端專案 `sidep_app` 中的 `src/api/index.js` 檔案已完成修改，所有模擬的 `dataService` 呼叫都已替換為對後端 FastAPI API 的實際 HTTP 請求。
-*   `addTimeSlotApi` 和 `removeTimeSlotApi` 這些函數在前端仍有 `console.warn` 提示，因為後端目前沒有直接對應的 API 端點。
+### **前端 API 連接與測試狀態**
 
-**下一步：**
+**目標：** 將前端 UI 與後端 API 連接，並驗證其功能。
 
-### **前端 API 連接規劃**
+**測試原則：**
+*   開發完成一個功能模組後，立即進行前後端整合測試。
+*   測試完成後，在此處更新狀態，以追蹤專案進度。
 
-**目標：** 將 `sidep_app` 中的 UI 元素（按鈕、表單提交等）與 `src/api/index.js` 中已對接的後端 API 函數連接起來。
-
-**規劃原則：**
-*   優先處理核心功能。
-*   每個組件會列出需要連接的 API 函數和觸發這些函數的 UI 元素。
-*   確保數據的載入、提交、更新和刪除都正確地透過 API 進行。
+---
 
 #### **階段一：認證與使用者資料**
 
-1.  **`src/views/public/SignIn.vue` (登入頁面)**
-    *   **API 函數：** `loginUser`
-    *   **連接點：** 登入表單提交事件 (`@submit`)。當用戶點擊「登入」按鈕時，觸發 `loginUser` 函數，並傳遞用戶輸入的電子郵件和密碼。
-    *   **狀態：** 已完成.
-
-2.  **`src/views/public/SignUp.vue` (註冊頁面)**
+1.  **`src/views/public/SignUp.vue` (註冊頁面)**
     *   **API 函數：** `registerUser`
-    *   **連接點：** 註冊表單提交事件 (`@submit`)。當用戶點擊「註冊」按鈕時，觸發 `registerUser` 函數，並傳遞用戶輸入的註冊資料。
-    *   **狀態：** 已完成.
+    *   **連接點：** 註冊表單提交。
+    *   **開發狀態：** 已完成。
+    *   **測試狀態：** **已完成**。✅
+
+2.  **`src/views/public/SignIn.vue` (登入頁面)**
+    *   **API 函數：** `loginUser`
+    *   **連接點：** 登入表單提交。
+    *   **開發狀態：** 已完成。
+    *   **測試狀態：** **已完成**。✅
 
 3.  **`src/components/Navbar.vue` (全局導航欄)**
     *   **API 函數：** `useAuth().logout`
-    *   **連接點：** 「登出」按鈕點擊事件 (`@click`)。當用戶點擊登出時，觸發 `logout` 函數以清除認證狀態。
-    *   **狀態顯示：** 根據 `useAuth().isLoggedIn` 和 `useAuth().isAdmin` 的狀態，動態顯示「登入/註冊」連結或「我的帳戶/管理員儀表板」連結。
-    *   **狀態：** 已完成.
-    *   **狀態：** 已完成。
+    *   **連接點：** 「登出」按鈕點擊。
+    *   **開發狀態：** 已完成。
+    *   **測試狀態：** **已完成**。✅
 
-4.  **`src/views/customer/AccountSettings.vue` (帳戶設定頁面)****
+4.  **`src/views/customer/AccountSettings.vue` (帳戶設定頁面)**
     *   **API 函數：** `fetchUserById`, `updateUserProfile`, `changeUserPassword`
-    *   **連接點：**
-        *   **初始載入：** 在組件掛載時 (`onMounted` 或 `created`) 呼叫 `fetchUserById` 來獲取當前用戶的資料並填充表單。
-        *   **更新個人資料：** 個人資料表單提交事件 (`@submit`)。當用戶點擊「儲存」按鈕時，觸發 `updateUserProfile` 函數。
-        *   **修改密碼：** 修改密碼表單提交事件 (`@submit`)。當用戶點擊「修改密碼」按鈕時，觸發 `changeUserPassword` 函數。
-    *   **狀態：** 已完成.
+    *   **連接點：** 頁面載入、更新個人資料、修改密碼。
+    *   **開發狀態：** 已完成。
+    *   **測試狀態：** 待測試。
+
+---
 
 #### **階段二：服務管理 (管理員)**
 
 1.  **`src/views/admin/ServiceManagement.vue` (服務項目管理頁面)**
-    *   **API 函數：** `fetchServices`, `saveService`, `deleteServiceApi`, `updateServiceStatus`, `bulkServiceAction`
-    *   **連接點：**
-        *   **初始載入：** 在組件掛載時呼叫 `fetchServices` 來獲取所有服務列表。
-        *   **新增/編輯服務：** 新增/編輯服務模態框的提交事件。觸發 `saveService` 函數。
-        *   **刪除服務：** 服務列表中的「刪除」按鈕點擊事件。觸發 `deleteServiceApi` 函數。
-        *   **切換上架狀態：** 服務列表中的「上架/下架」開關或按鈕點擊事件。觸發 `updateServiceStatus` 函數。
-        *   **批次操作：** 批次操作下拉選單選擇後，點擊「執行」按鈕。觸發 `bulkServiceAction` 函數，並傳遞選定的操作類型和服務 ID 列表。
-    *   **狀態：** 已完成.
+    *   **API 函數：** `fetchServices`, `saveService`, `updateServiceStatus`, `bulkServiceAction`
+    *   **連接點：** 頁面載入、新增/編輯服務、刪除服務、切換狀態、批次操作。
+    *   **開發狀態：** 已完成。
+    *   **測試狀態：** **已完成** (新增/編輯服務)。其餘待測試。
 
 2.  **`src/views/public/ServiceList.vue` (服務項目列表頁面)**
     *   **API 函數：** `fetchServices`
-    *   **連接點：** 初始載入時呼叫 `fetchServices` 來顯示所有可用的服務。
-    *   **狀態：** 已完成.
+    *   **連接點：** 頁面載入。
+    *   **開發狀態：** 已完成。
+    *   **測試狀態：** **已完成**。✅
+
+---
 
 #### **階段三：預約管理**
 
 1.  **`src/views/customer/BookingFlow.vue` (預約流程頁面)**
     *   **API 函數：** `fetchServices`, `saveBooking`
-    *   **連接點：**
-        *   **服務選擇：** 初始載入時呼叫 `fetchServices` 以顯示可供選擇的服務。
-        *   **提交預約：** 預約流程最後一步的「確認預約」按鈕點擊事件。觸發 `saveBooking` 函數。
-    *   **狀態：** 已完成。
+    *   **連接點：** 服務選擇、提交預約。
+    *   **開發狀態：** 已完成。
+    *   **測試狀態：** 待測試。
 
 2.  **`src/views/customer/MyBookings.vue` (我的預約紀錄頁面)**
-    *   **API 函數：** `fetchBookings` (需要後端提供一個獲取當前用戶預約的端點，目前是 `GET /bookings/my`)
-    *   **連接點：** 初始載入時呼叫 `fetchBookings` 來顯示當前用戶的所有預約紀錄。
-    *   **取消預約：** 預約紀錄中的「取消預約」按鈕點擊事件。觸發 `deleteBooking` 函數。
-    *   **狀態：** 已完成。
+    *   **API 函數：** `fetchBookings`
+    *   **連接點：** 頁面載入、取消預約。
+    *   **開發狀態：** 已完成。
+    *   **測試狀態：** 待測試。
 
 3.  **`src/views/admin/BookingCalendar.vue` (管理員預約行事曆頁面)**
     *   **API 函數：** `fetchBookings`, `saveBooking`, `updateBookingStatus`, `deleteBooking`
-    *   **連接點：**
-        *   **初始載入：** 載入日曆時呼叫 `fetchBookings` 來顯示所有預約。
-        *   **新增預約：** 點擊日期或「新增預約」按鈕，提交新增預約表單。觸發 `saveBooking` 函數。
-        *   **更新預約狀態：** 預約詳情模態框中的狀態選擇器或按鈕。觸發 `updateBookingStatus` 函數。
-        *   **刪除預約：** 預約詳情模態框中的「刪除」按鈕。觸發 `deleteBooking` 函數。
-    *   **狀態：** 已完成.
+    *   **連接點：** 頁面載入、新增/更新/刪除預約。
+    *   **開發狀態：** 已完成。
+    *   **測試狀態：** 待測試。
 
 4.  **`src/views/admin/Dashboard.vue` (管理員儀表板頁面)**
-    *   **API 函數：** `fetchBookings` (用於獲取近期待處理訂單)
-    *   **連接點：** 初始載入時呼叫 `fetchBookings` 來顯示儀表板上的預約概覽。
-    *   **狀態：** 已完成.
+    *   **API 函數：** `fetchBookings`
+    *   **連接點：** 頁面載入。
+    *   **開發狀態：** 已完成。
+    *   **測試狀態：** 待測試。
+
+---
 
 #### **階段四：客戶管理 (管理員)**
 
 1.  **`src/views/admin/ClientManagement.vue` (客戶名單管理頁面)**
     *   **API 函數：** `fetchClients`, `fetchClientById`, `updateClient`
-    *   **連接點：**
-        *   **初始載入：** 在組件掛載時呼叫 `fetchClients` 來獲取所有客戶列表。
-        *   **查看客戶詳情：** 客戶列表中的「查看詳情」按鈕點擊事件。觸發 `fetchClientById` 函數。
-        *   **更新客戶資料：** 客戶詳情模態框中的表單提交事件。觸發 `updateClient` 函數。
-    *   **狀態：** 已完成.
+    *   **連接點：** 頁面載入、查看/更新客戶資料。
+    *   **開發狀態：** 已完成。
+    *   **測試狀態：** 待測試。
+
+---
 
 #### **階段五：營業設定 (管理員)**
 
 1.  **`src/views/admin/BusinessSettings.vue` (營業設定頁面)**
     *   **API 函數：** `fetchBusinessSettings`, `saveBusinessSettings`, `addHoliday`, `removeHoliday`, `addUnavailableDateApi`, `removeUnavailableDateApi`, `addTimeSlotApi`, `removeTimeSlotApi`
-    *   **連接點：**
-        *   **初始載入：** 在組件掛載時呼叫 `fetchBusinessSettings` 來獲取所有營業設定。
-        *   **保存所有設定：** 頁面底部的「保存設定」按鈕點擊事件。觸發 `saveBusinessSettings` 函數，並傳遞所有營業設定的數據。
-        *   **新增假日：** 「新增假日」表單提交事件。觸發 `addHoliday` 函數。
-        *   **刪除假日：** 假日列表中的「刪除」按鈕點擊事件。觸發 `removeHoliday` 函數。
-        *   **新增不可預約日期：** 「新增不可預約日期」表單提交事件。觸發 `addUnavailableDateApi` 函數。
-        *   **刪除不可預約日期：** 不可預約日期列表中的「刪除」按鈕點擊事件。觸發 `removeUnavailableDateApi` 函數。
-        *   **新增可預約時間段：** 「新增時間段」表單提交事件。觸發 `addTimeSlotApi` 函數。
-        *   **刪除可預約時間段：** 可預約時間段列表中的「刪除」按鈕點擊事件。觸發 `removeTimeSlotApi` 函數。
-    *   **狀態：** 已完成.
+    *   **連接點：** 頁面載入、保存設定、新增/刪除假日、不可預約日期、時間段。
+    *   **開發狀態：** 已完成。
+    *   **測試狀態：** **已完成** (設定營業時間)。其餘待測試。
 
 ---
 
@@ -306,3 +289,44 @@
 1.  **啟動前端開發伺服器：** 在 `sidep_app` 資料夾中執行 `npm run dev`。
 2.  **啟動後端 FastAPI 應用程式：** 在 `sidep_backend` 資料夾中執行 `uvicorn main:app --reload`。
 3.  **測試前端應用程式：** 在瀏覽器中訪問前端應用程式，並測試其功能，例如註冊、登入、查看服務、預約等，看看它們是否能正確地與後端互動。
+
+### **Pinia 狀態管理整合**
+
+**目標：** 將核心狀態管理從 `localStorage` 和 `ref` 遷移到 Pinia，以提供更集中、可維護的狀態管理。
+
+**進度：**
+
+1.  **安裝 Pinia：** 已完成。✅
+2.  **設定 Pinia：** 已完成 (`src/main.js`)。✅
+3.  **創建 `auth` Store：** 已完成 (`src/stores/auth.js`)。✅
+4.  **更新 `useAuth.js`：** 已完成，現在 `useAuth` 透過 `useAuthStore` 獲取和操作認證狀態。✅
+5.  **更新相關組件：**
+    *   `src/components/Navbar.vue`：已更新為使用 `storeToRefs` 確保 `isLoggedIn` 和 `isAdmin` 的響應性。✅
+    *   `src/views/public/SignIn.vue`：已更新為使用 `storeToRefs` 確保 `isAdmin` 的響應性。✅
+    *   `src/views/public/SignUp.vue`：已更新為透過 `useAuth().register` 處理註冊邏輯。✅
+    *   `src/views/customer/AccountSettings.vue`：已更新為使用 `useUserProfileStore` 管理用戶個人資料。✅
+    *   `src/views/customer/MyBookings.vue`：已更新為使用 `useBookingStore` 管理預約資料。✅
+    *   `src/views/admin/BookingCalendar.vue`：已更新為使用 `useBookingStore`、`useServiceStore`、`useClientStore` 和 `useBusinessSettingsStore` 管理相關資料。✅
+    *   `src/views/admin/Dashboard.vue`：已更新為使用 `useBookingStore`、`useClientStore` 和 `useServiceStore` 管理相關資料。✅
+    *   `src/views/admin/ServiceManagement.vue`：已更新為使用 `useServiceStore` 管理服務資料。✅
+    *   `src/views/public/ServiceList.vue`：已更新為使用 `useServiceStore` 管理服務資料。✅
+    *   `src/views/admin/ClientManagement.vue`：已更新為使用 `useClientStore` 管理客戶資料。✅
+    *   `src/views/admin/BusinessSettings.vue`：已更新為使用 `useBusinessSettingsStore` 管理營業設定資料。✅
+
+**下一步：** 繼續測試各功能模組，確保 Pinia 整合後所有功能正常運作。
+
+### **登出功能完善**
+
+**目標：** 確保登出功能不僅清除前端狀態，還能通知後端使 JWT Token 失效。
+
+**進度：**
+
+1.  **後端 `sidep_backend/models.py`：** 已添加 `BlacklistedToken` 模型。✅
+2.  **後端 `sidep_backend/schemas.py`：** 已添加 `BlacklistedToken` 的 Pydantic Schema。✅
+3.  **後端 `sidep_backend/main.py`：**
+    *   已新增 `/auth/logout` 端點，將 Token 加入黑名單。✅
+    *   已修改 `get_current_user` 函數，檢查 Token 是否在黑名單中。✅
+4.  **前端 `src/api/index.js`：** 已新增 `logoutUser` API 函數。✅
+5.  **前端 `src/stores/auth.js`：** 已更新 `logout` action，呼叫 `logoutUser` API。✅
+
+**下一步：** 測試登出功能，確認 Token 是否正確失效。

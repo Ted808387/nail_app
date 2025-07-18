@@ -45,8 +45,8 @@
 import { ref, onMounted } from 'vue';
 import { useRouter } from 'vue-router';
 import { useNotification } from '../../composables/useNotification';
-import { loginUser } from '../../api'; // 引入 loginUser
-import { useAuth } from '../../composables/useAuth'; // 引入 useAuth
+import { useAuthStore } from '../../stores/auth'; // 引入 Pinia 的 auth store
+import { storeToRefs } from 'pinia'; // 引入 storeToRefs
 
 const email = ref('');
 const password = ref('');
@@ -62,7 +62,8 @@ const isLoading = ref(false);
 
 const router = useRouter();
 const { showSuccess, showError } = useNotification();
-const { login } = useAuth(); // 使用 useAuth
+const authStore = useAuthStore(); // 使用 Pinia 的 auth store
+const { isAdmin } = storeToRefs(authStore); // 使用 storeToRefs 保持響應性
 
 function validateForm() {
   errors.value = {};
@@ -93,26 +94,24 @@ async function handleSignIn() {
   try {
     console.log('嘗試登入:', { email: email.value, password: password.value, rememberMe: rememberMe.value });
 
-    const success = await login(email.value, password.value); // 使用 useAuth 的 login 方法
+    const success = await authStore.login(email.value, password.value); // 使用 authStore 的 login 方法
 
     if (success) {
       showSuccess('登入成功！');
-      // 登入成功後，useAuth 內部會處理用戶狀態和 token 儲存
-      // 這裡只需要根據用戶角色進行路由跳轉
-      const { currentUserRole } = useAuth(); // 重新獲取最新的用戶角色
-      if (currentUserRole.value === 'admin') {
+      // 登入成功後，根據用戶角色進行路由跳轉
+      if (isAdmin.value) { // 使用解構後的 isAdmin
         router.push('/admin');
       } else {
         router.push('/my-bookings');
       }
     } else {
-      // 登入失敗的錯誤訊息已在 useAuth 內部處理
+      // 登入失敗的錯誤訊息已在 authStore 內部處理
       loginError.value = 'Email 或密碼不正確。'; // 這裡可以保留一個通用的錯誤訊息
     }
 
   } catch (error) {
     console.error('登入過程中發生錯誤:', error);
-    showError('登入失敗，請稍後再試。');
+    showError(error.detail || '登入失敗，請稍後再試。');
   } finally {
     isLoading.value = false;
   }

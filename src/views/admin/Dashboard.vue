@@ -141,16 +141,16 @@
           </p>
 
           <div class="mt-6 sm:mt-8 flex justify-end space-x-4">
-            <button v-if="!isEditing" @click="startEditing" :disabled="isLoading"
+            <button v-if="!isEditing" @click="startEditing" :disabled="bookingStore.isLoading"
               class="px-6 py-2 bg-blue-500 text-white rounded-full shadow-md hover:bg-blue-600 transition duration-300 disabled:opacity-50 disabled:cursor-not-allowed">
               編輯
             </button>
             <template v-else>
-              <button @click="saveChanges" :disabled="isLoading"
+              <button @click="saveChanges" :disabled="bookingStore.isLoading"
                 class="px-6 py-2 bg-green-500 text-white rounded-full shadow-md hover:bg-green-600 transition duration-300 disabled:opacity-50 disabled:cursor-not-allowed">
-                {{ isLoading ? '儲存中...' : '儲存' }}
+                {{ bookingStore.isLoading ? '儲存中...' : '儲存' }}
               </button>
-              <button @click="cancelEditing" :disabled="isLoading"
+              <button @click="cancelEditing" :disabled="bookingStore.isLoading"
                 class="px-6 py-2 bg-gray-300 text-gray-800 rounded-full shadow-md hover:bg-gray-400 transition duration-300 disabled:opacity-50 disabled:cursor-not-allowed">
                 取消
               </button>
@@ -166,12 +166,17 @@
 </template>
 
 <script setup>
-import { ref, onMounted } from 'vue';
+import { ref, onMounted, computed } from 'vue';
 import { useRouter } from 'vue-router';
-import { fetchBookings, fetchClients, fetchServices, updateBooking } from '../../api';
 import { useNotification } from '../../composables/useNotification';
+import { useBookingStore } from '../../stores/booking';
+import { useClientStore } from '../../stores/client';
+import { useServiceStore } from '../../stores/service';
 
 const router = useRouter();
+const bookingStore = useBookingStore();
+const clientStore = useClientStore();
+const serviceStore = useServiceStore();
 
 const dashboardData = ref({
   todayAppointments: 0,
@@ -184,7 +189,6 @@ const dashboardData = ref({
 
 const isModalOpen = ref(false); // 控制 Modal 開關
 const selectedBooking = ref(null); // 儲存選中的預約資料
-const isLoading = ref(false); // 新增載入狀態，用於 Modal 內的編輯操作
 const isEditing = ref(false); // 控制 Modal 內的編輯模式
 const originalBooking = ref(null); // 用於儲存原始數據，以便取消編輯時恢復
 
@@ -213,16 +217,19 @@ const getStatusClass = (status) => {
 const fetchDashboardData = async () => {
   console.log('fetchDashboardData: 開始載入儀表板數據...');
   try {
-    console.log('fetchDashboardData: 正在獲取所有預約...');
-    const allBookings = await fetchBookings();
+    // 從 Pinia Store 獲取數據
+    await Promise.all([
+      bookingStore.fetchBookings(),
+      clientStore.fetchClients(),
+      serviceStore.fetchServices()
+    ]);
+
+    const allBookings = bookingStore.bookings;
+    const allClients = clientStore.clients;
+    const allServices = serviceStore.services;
+
     console.log('fetchDashboardData: 獲取到預約數據:', allBookings);
-
-    console.log('fetchDashboardData: 正在獲取所有客戶...');
-    const allClients = await fetchClients();
     console.log('fetchDashboardData: 獲取到客戶數據:', allClients);
-
-    console.log('fetchDashboardData: 正在獲取所有服務...');
-    const allServices = await await fetchServices();
     console.log('fetchDashboardData: 獲取到服務數據:', allServices);
 
     const today = new Date();
@@ -271,7 +278,11 @@ const fetchDashboardData = async () => {
     // 近期待處理預約
     dashboardData.value.recentPendingBookings = allBookings.filter(b => b.status === 'pending')
       .sort((a, b) => new Date(a.date) - new Date(b.date))
-      .slice(0, 5); // 只顯示最近5筆
+      .slice(0, 5).map(b => ({
+        ...b,
+        clientName: allClients.find(c => c.id === b.user_id)?.name || '未知客戶',
+        serviceName: allServices.find(s => s.id === b.service_id)?.name || '未知服務',
+      }));
   } catch (error) {
     console.error('載入儀表板數據失敗:', error);
     showError('載入儀表板數據失敗，請稍後再試。');
@@ -302,22 +313,19 @@ function startEditing() {
 }
 
 async function saveChanges() {
-  isLoading.value = true;
   try {
     const updatedData = {
       notes: selectedBooking.value.notes,
       status: selectedBooking.value.status // Allow updating status from modal
     };
-    await updateBooking(selectedBooking.value.id, updatedData);
+    await bookingStore.updateBooking(selectedBooking.value.id, updatedData);
     showSuccess('預約已成功更新！');
     isEditing.value = false;
     originalBooking.value = null; // Clear original data
     fetchDashboardData(); // Reload dashboard data to reflect changes
   } catch (error) {
     console.error('儲存變更失敗:', error);
-    showError('儲存變更失敗，請稍後再試。');
-  } finally {
-    isLoading.value = false;
+    showError(bookingStore.error || '儲存變更失敗，請稍後再試。');
   }
 }
 

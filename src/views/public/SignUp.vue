@@ -65,12 +65,12 @@
 import { ref, computed } from 'vue';
 import { useRouter } from 'vue-router';
 import { useNotification } from '../../composables/useNotification';
-import { registerUser } from '../../api';
+// import { registerUser } from '../../api'; // 移除直接引入
 import { useAuth } from '../../composables/useAuth'; // 引入 useAuth
 
 const router = useRouter();
 const { showSuccess, showError } = useNotification();
-const { login } = useAuth(); // 使用 useAuth
+const { register } = useAuth(); // 使用 useAuth 的 register 方法
 
 const name = ref('');
 const email = ref('');
@@ -170,13 +170,14 @@ async function handleSignUp() {
       role: isAdmin.value ? 'admin' : 'customer',
     };
 
-    const response = await registerUser(userData);
+    const success = await register(userData); // 使用 useAuth 的 register 方法
 
-    if (response && response.id) { // 假設成功註冊會返回用戶 ID
+    if (success) {
       showSuccess('註冊成功！');
       router.push('/account/signin'); // 註冊成功後導向登入頁面
     } else {
-      showError('註冊失敗，請檢查輸入資訊。');
+      // 註冊失敗的錯誤訊息已在 useAuth 內部處理
+      showError('註冊失敗，請檢查輸入資訊。'); // 這裡可以保留一個通用的錯誤訊息
     }
 
   } catch (error) {
