@@ -67,13 +67,13 @@
         <h2 class="text-3xl font-semibold text-soft-blue-700 mb-6">通知設定</h2>
         <div class="mb-4">
           <label class="inline-flex items-center">
-            <input type="checkbox" v-model="notificationSettings.email" class="form-checkbox h-5 w-5 text-soft-blue-600">
+            <input type="checkbox" v-model="userProfileStore.userProfile.email_notifications_enabled" class="form-checkbox h-5 w-5 text-soft-blue-600">
             <span class="ml-2 text-soft-blue-700 text-lg">Email 通知</span>
           </label>
         </div>
         <div class="mb-6">
           <label class="inline-flex items-center">
-            <input type="checkbox" v-model="notificationSettings.sms" class="form-checkbox h-5 w-5 text-soft-blue-600">
+            <input type="checkbox" v-model="userProfileStore.userProfile.sms_notifications_enabled" class="form-checkbox h-5 w-5 text-soft-blue-600">
             <span class="ml-2 text-soft-blue-700 text-lg">簡訊通知</span>
           </label>
         </div>
@@ -109,10 +109,11 @@ const passwordErrors = reactive({
   confirmNew: ''
 });
 
-const notificationSettings = reactive({
-  email: true,
-  sms: false
-});
+// notificationSettings 不再需要作為獨立的 reactive 物件，直接綁定到 store
+// const notificationSettings = reactive({
+//   email: true,
+//   sms: false
+// });
 
 const avatarInput = ref(null); // 用於檔案輸入的引用
 
@@ -192,14 +193,17 @@ async function changePassword() {
 }
 
 async function saveNotificationSettings() {
-  console.log('儲存通知設定:', notificationSettings);
+  // console.log('儲存通知設定:', notificationSettings); // 不再需要
   try {
-    // 在此處加入呼叫後端 API 的邏輯
-    await new Promise(resolve => setTimeout(resolve, 1000)); // 模擬網路延遲
+    const updatedData = {
+      email_notifications_enabled: userProfileStore.userProfile.email_notifications_enabled,
+      sms_notifications_enabled: userProfileStore.userProfile.sms_notifications_enabled,
+    };
+    await userProfileStore.updateUserProfile(updatedData);
     showSuccess('通知設定已儲存！');
   } catch (error) {
     console.error('儲存通知設定失敗:', error);
-    showError('儲存通知設定失敗，請稍後再試。');
+    showError(userProfileStore.error || '儲存通知設定失敗，請稍後再試。');
   }
 }
 
