@@ -2,11 +2,11 @@
   <div class="min-h-screen bg-soft-blue-50 p-8">
     <h1 class="text-4xl font-bold text-soft-blue-800 text-center mb-10">帳號設定</h1>
 
-    <div class="max-w-2xl mx-auto bg-white rounded-2xl shadow-lg p-8 border border-soft-blue-200">
+    <div v-if="userProfileStore.userProfile" class="max-w-2xl mx-auto bg-white rounded-2xl shadow-lg p-8 border border-soft-blue-200">
       <!-- 頭像上傳區 (Placeholder) -->
       <div class="flex flex-col items-center mb-8 pb-8 border-b border-soft-blue-200">
-        <img :src="userProfileStore.userProfile?.avatar || 'https://via.placeholder.com/150?text=Avatar'" alt="User Avatar"
-          class="w-32 h-32 rounded-full object-cover mb-4 shadow-md border-2 border-soft-blue-300">
+        <img :src="userProfileStore.userProfile?.avatar_url || 'https://via.placeholder.com/150?text=Avatar'" alt="User Avatar"
+          class="w-32 h-32 rounded-full object-cover mb-4 shadow-md border-2 border-blue-300">
         <button @click="uploadAvatar" :disabled="userProfileStore.isLoading"
           class="px-6 py-2 bg-soft-blue-500 text-white rounded-full shadow-md hover:bg-soft-blue-600 transition duration-300 disabled:opacity-50 disabled:cursor-not-allowed">
           {{ userProfileStore.isLoading ? '上傳中...' : '上傳頭像' }}
@@ -83,6 +83,9 @@
         </button>
       </section>
     </div>
+    <div v-else class="max-w-2xl mx-auto text-center text-soft-blue-600 text-lg py-10">
+      載入用戶資料中...
+    </div>
   </div>
 </template>
 
@@ -133,6 +136,7 @@ async function updateProfile() {
     const updatedData = {
       name: userProfileStore.userProfile.name,
       phone_number: userProfileStore.userProfile.phone_number, // 注意這裡的欄位名稱對應後端
+      avatar_url: userProfileStore.userProfile.avatar_url, // 包含 avatar_url
     };
     await userProfileStore.updateUserProfile(updatedData);
     showSuccess('個人資料已儲存！');
@@ -199,22 +203,34 @@ async function saveNotificationSettings() {
   }
 }
 
-// 頭像上傳相關函數 (保持不變，因為這部分沒有直接的 API 串接)
+// 頭像上傳相關函數
 function uploadAvatar() {
   avatarInput.value.click();
 }
 
-function handleAvatarChange(event) {
+async function handleAvatarChange(event) {
   const file = event.target.files[0];
   if (file) {
-    const reader = new FileReader();
-    reader.onload = (e) => {
-      // profile.avatar = e.target.result; // 直接更新到 store 的 userProfile.avatar
-      // 這裡需要考慮如何將頭像上傳到後端，目前沒有對應的 API
-      showSuccess('頭像已選取，但上傳功能尚未實作。');
-    };
-    reader.readAsDataURL(file);
+    try {
+      const base64String = await toBase64(file);
+      // 直接更新 store 中的 avatar_url
+      userProfileStore.userProfile.avatar_url = base64String;
+      showSuccess('圖片已成功預覽！請點擊儲存變更以保存。');
+    } catch (error) {
+      console.error('圖片轉換失敗:', error);
+      showError('圖片讀取失敗，請選擇其他圖片。');
+    }
   }
+}
+
+// 將檔案轉換為 Base64
+function toBase64(file) {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.readAsDataURL(file);
+    reader.onload = () => resolve(reader.result);
+    reader.onerror = error => reject(error);
+  });
 }
 </script>
 

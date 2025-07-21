@@ -304,7 +304,7 @@
     *   `src/components/Navbar.vue`：已更新為使用 `storeToRefs` 確保 `isLoggedIn` 和 `isAdmin` 的響應性。✅
     *   `src/views/public/SignIn.vue`：已更新為使用 `storeToRefs` 確保 `isAdmin` 的響應性。✅
     *   `src/views/public/SignUp.vue`：已更新為透過 `useAuth().register` 處理註冊邏輯。✅
-    *   `src/views/customer/AccountSettings.vue`：已更新為使用 `useUserProfileStore` 管理用戶個人資料。✅
+    *   `src/views/customer/AccountSettings.vue`：已修正 `TypeError` 錯誤，並完善頭像上傳邏輯，使其能夠預覽圖片並更新 `avatar_url`。✅
     *   `src/views/customer/MyBookings.vue`：已更新為使用 `useBookingStore` 管理預約資料。✅
     *   `src/views/admin/BookingCalendar.vue`：已更新為使用 `useBookingStore`、`useServiceStore`、`useClientStore` 和 `useBusinessSettingsStore` 管理相關資料。✅
     *   `src/views/admin/Dashboard.vue`：已更新為使用 `useBookingStore`、`useClientStore` 和 `useServiceStore` 管理相關資料。✅
