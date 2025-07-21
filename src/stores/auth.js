@@ -1,8 +1,12 @@
+import { useRouter } from 'vue-router';
+import { useNotification } from '@/composables/useNotification.js'; // 導入通知 composable
 import { defineStore } from 'pinia';
 import { ref, computed } from 'vue';
 import { loginUser, registerUser, fetchUserById, logoutUser } from '../api'; // 引入 logoutUser
 
 export const useAuthStore = defineStore('auth', () => {
+  const { showSuccess, showError } = useNotification(); // 使用通知
+  const router = useRouter();
   const currentUserId = ref(localStorage.getItem('currentUserId') ? parseInt(localStorage.getItem('currentUserId')) : null);
   const currentUserRole = ref(localStorage.getItem('currentUserRole') || null);
 
@@ -36,6 +40,8 @@ export const useAuthStore = defineStore('auth', () => {
   async function logout() { // 將 logout 函數改為 async
     try {
       await logoutUser(); // 呼叫後端登出 API
+      router.push('/account/signin'); // 登出後導向登入頁面
+      showSuccess('您已成功登出。');
     } catch (error) {
       console.error('登出 API 呼叫失敗:', error);
       // 即使 API 呼叫失敗，前端也應該清除本地狀態，確保用戶登出
