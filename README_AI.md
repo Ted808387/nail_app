@@ -211,7 +211,7 @@
     *   **API 函數：** `fetchUserById`, `updateUserProfile`, `changeUserPassword`
     *   **連接點：** 頁面載入、更新個人資料、修改密碼。
     *   **開發狀態：** 已完成。
-    *   **測試狀態：** 待測試。
+    *   **測試狀態：** **已完成**。✅
 
 ---
 
@@ -221,7 +221,7 @@
     *   **API 函數：** `fetchServices`, `saveService`, `updateServiceStatus`, `bulkServiceAction`
     *   **連接點：** 頁面載入、新增/編輯服務、刪除服務、切換狀態、批次操作。
     *   **開發狀態：** 已完成。
-    *   **測試狀態：** **已完成** (新增/編輯服務)。其餘待測試。
+    *   **測試狀態：** **已完成** ✅
 
 2.  **`src/views/public/ServiceList.vue` (服務項目列表頁面)**
     *   **API 函數：** `fetchServices`
