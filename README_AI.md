@@ -237,7 +237,7 @@
     *   **API 函數：** `fetchServices`, `saveBooking`
     *   **連接點：** 服務選擇、提交預約。
     *   **開發狀態：** 已完成。
-    *   **測試狀態：** 待測試。
+    *   **測試狀態：** 已完成 (第二步驟待測試)。
 
 2.  **`src/views/customer/MyBookings.vue` (我的預約紀錄頁面)**
     *   **API 函數：** `fetchBookings`
