@@ -213,7 +213,6 @@ const isDateBookable = (dateString) => {
   const settings = businessSettingsStore.settings;
   const allBookings = bookingStore.bookings;
 
-  // 健壯性檢查：確保所有需要的數據都已載入
   if (!settings || !settings.business_hours || !settings.holidays || !settings.unavailable_dates || !allBookings) {
     return { isBookable: false, reason: 'unavailable' };
   }
@@ -240,7 +239,8 @@ const isDateBookable = (dateString) => {
     return { isBookable: false, reason: 'unavailable' };
   }
 
-  const durationToCheck = totalDuration.value > 0 ? totalDuration.value : 30;
+  // 簡化邏輯：只檢查 30 分鐘的時段是否可用
+  const durationToCheck = 30; 
 
   const timeSlots = (bookable_time_slots && bookable_time_slots.length > 0)
     ? bookable_time_slots
@@ -262,8 +262,8 @@ const isDateBookable = (dateString) => {
         for (const booking of bookingsForDay) {
           const bookingStart = new Date(`${booking.date}T${booking.time}`);
           const service = serviceStore.services.find(s => s.id === booking.service_id);
-          const duration = service ? service.max_duration : 30;
-          const bookingEnd = new Date(bookingStart.getTime() + duration * 60000);
+          const bookingDuration = service ? service.max_duration : 30; // 已預約的項目仍需考慮其時長
+          const bookingEnd = new Date(bookingStart.getTime() + bookingDuration * 60000);
 
           if (startTime < bookingEnd && endTime > bookingStart) {
             isOverlapped = true;
@@ -317,14 +317,15 @@ const filteredAvailableTimes = computed(() => {
 
   return times.map(time => {
     const startTime = new Date(`${selectedDate.value}T${time}`);
-    const endTime = new Date(startTime.getTime() + totalDuration.value * 60000);
+    // 簡化邏輯：只檢查 30 分鐘的時段是否被佔用
+    const endTime = new Date(startTime.getTime() + 30 * 60000);
 
     let isBooked = false;
     for (const booking of bookingsForDay) {
       const bookingStart = new Date(`${booking.date}T${booking.time}`);
       const service = serviceStore.services.find(s => s.id === booking.service_id);
-      const duration = service ? service.max_duration : 30;
-      const bookingEnd = new Date(bookingStart.getTime() + duration * 60000);
+      const bookingDuration = service ? service.max_duration : 30; // 已預約的項目仍需考慮其時長
+      const bookingEnd = new Date(bookingStart.getTime() + bookingDuration * 60000);
 
       if (startTime < bookingEnd && endTime > bookingStart) {
         isBooked = true;
