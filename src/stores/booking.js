@@ -12,22 +12,33 @@ export const useBookingStore = defineStore('booking', () => {
   const { showSuccess, showError } = useNotification();
   const authStore = useAuthStore();
 
-  async function fetchBookings() {
+  async function fetchAllBookings() {
     isLoading.value = true;
     error.value = null;
     try {
-      let fetchedBookings;
-      if (authStore.isAdmin) {
-        fetchedBookings = await apiFetchAllBookings();
-      } else {
-        fetchedBookings = await apiFetchMyBookings();
-      }
+      const fetchedBookings = await apiFetchAllBookings();
       bookings.value = fetchedBookings;
       showSuccess('預約資料載入成功！');
     } catch (err) {
       error.value = err;
       showError('載入預約資料失敗！');
-      console.error('Error fetching bookings:', err);
+      console.error('Error fetching all bookings:', err);
+    } finally {
+      isLoading.value = false;
+    }
+  }
+
+  async function fetchMyBookings() {
+    isLoading.value = true;
+    error.value = null;
+    try {
+      const fetchedBookings = await apiFetchMyBookings();
+      bookings.value = fetchedBookings;
+      showSuccess('我的預約資料載入成功！');
+    } catch (err) {
+      error.value = err;
+      showError('載入我的預約資料失敗！');
+      console.error('Error fetching my bookings:', err);
     } finally {
       isLoading.value = false;
     }
@@ -38,9 +49,6 @@ export const useBookingStore = defineStore('booking', () => {
     error.value = null;
     try {
       const newBooking = await apiSaveBooking(bookingData);
-      // 根據實際後端返回的數據，可能需要更新 bookings 列表
-      // 這裡假設後端返回的是完整的預約對象
-      // 如果是新增，則添加到列表；如果是更新，則替換現有對象
       const index = bookings.value.findIndex(b => b.id === newBooking.id);
       if (index !== -1) {
         bookings.value[index] = newBooking;
@@ -101,7 +109,8 @@ export const useBookingStore = defineStore('booking', () => {
     bookings,
     isLoading,
     error,
-    fetchBookings,
+    fetchAllBookings,
+    fetchMyBookings,
     saveBooking,
     updateBooking,
     deleteBooking,

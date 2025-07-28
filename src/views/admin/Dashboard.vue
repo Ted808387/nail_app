@@ -121,7 +121,7 @@
         <button @click="closeModal" class="absolute top-3 right-3 text-gray-500 hover:text-gray-700 text-2xl sm:text-3xl font-bold">&times;</button>
         <h2 class="text-2xl sm:text-3xl font-bold text-soft-blue-800 mb-5 sm:mb-6">預約詳情</h2>
         <div v-if="selectedBooking" class="space-y-4">
-          <p class="text-soft-blue-700 text-base sm:text-lg"><strong>預約 ID:</strong> {{ selectedBooking.id }}</p>
+          <p class="text-soft-blue-700 text-base sm:text-lg"><strong>預約編號:</strong> {{ selectedBooking.booking_reference_id }}</p>
           <p class="text-soft-blue-700 text-base sm:text-lg"><strong>客戶姓名:</strong> {{ selectedBooking.clientName }}</p>
           <p class="text-soft-blue-700 text-base sm:text-lg"><strong>服務項目:</strong> {{ selectedBooking.serviceName }}</p>
           <p class="text-soft-blue-700 text-base sm:text-lg"><strong>日期:</strong> {{ selectedBooking.date }}</p>
@@ -219,7 +219,7 @@ const fetchDashboardData = async () => {
   try {
     // 從 Pinia Store 獲取數據
     await Promise.all([
-      bookingStore.fetchBookings(),
+      bookingStore.fetchAllBookings(),
       clientStore.fetchClients(),
       serviceStore.fetchServices()
     ]);
@@ -278,11 +278,7 @@ const fetchDashboardData = async () => {
     // 近期待處理預約
     dashboardData.value.recentPendingBookings = allBookings.filter(b => b.status === 'pending')
       .sort((a, b) => new Date(a.date) - new Date(b.date))
-      .slice(0, 5).map(b => ({
-        ...b,
-        clientName: allClients.find(c => c.id === b.user_id)?.name || '未知客戶',
-        serviceName: allServices.find(s => s.id === b.service_id)?.name || '未知服務',
-      }));
+      .slice(0, 5);
   } catch (error) {
     console.error('載入儀表板數據失敗:', error);
     showError('載入儀表板數據失敗，請稍後再試。');

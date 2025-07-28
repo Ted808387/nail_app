@@ -50,7 +50,7 @@
         <button @click="closeModal" class="absolute top-3 right-3 text-gray-500 hover:text-gray-700 text-2xl sm:text-3xl font-bold">&times;</button>
         <h2 class="text-2xl sm:text-3xl font-bold text-soft-blue-800 mb-5 sm:mb-6">預約詳情</h2>
         <div class="space-y-3 text-base sm:text-lg text-soft-blue-700">
-          <p><strong>預約編號：</strong> {{ selectedBooking.id }}</p>
+          <p><strong>預約編號：</strong> {{ selectedBooking.booking_reference_id }}</p>
           <p><strong>服務項目：：</strong> {{ selectedBooking.serviceName }}</p>
           <p><strong>預約日期：</strong> {{ selectedBooking.date }}</p>
           <p><strong>預約時間：</strong> {{ selectedBooking.time }}</p>
@@ -110,7 +110,7 @@ const { showSuccess, showError } = useNotification(); // 使用通知組合式�
 // 組件掛載時載入數據
 onMounted(async () => {
   try {
-    await bookingStore.fetchBookings(); // 從 Pinia Store 載入預約數據
+    await bookingStore.fetchMyBookings(); // 從 Pinia Store 載入預約數據
   } catch (error) {
     console.error('載入預約失敗:', error);
     showError('載入預約失敗，請稍後再試。');

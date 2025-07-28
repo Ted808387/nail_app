@@ -119,7 +119,7 @@
         <p class="text-lg sm:text-xl text-soft-blue-700 mb-3 sm:mb-4">我們已經收到您的預約，期待您的光臨。</p>
         <p class="text-xl sm:text-2xl font-bold text-soft-blue-900 mb-6 sm:mb-8">您的預約編號：{{ bookingId }}</p>
         <div class="flex flex-col sm:flex-row justify-center space-y-3 sm:space-y-0 sm:space-x-4">
-          <router-link to="/my-bookings"
+          <router-link v-if="authStore.isLoggedIn" to="/my-bookings"
             class="px-6 sm:px-8 py-2 sm:py-3 bg-soft-blue-600 text-white text-base sm:text-lg font-semibold rounded-full shadow-md hover:bg-soft-blue-700 transition duration-300">
             查看我的預約
           </router-link>
@@ -175,7 +175,7 @@ onMounted(async () => {
     // isLoading.value = true; // Let the stores handle their own loading state
     await Promise.all([
       serviceStore.fetchServices(),
-      bookingStore.fetchBookings(),
+      bookingStore.fetchAllBookings(),
       businessSettingsStore.fetchBusinessSettings(),
     ]);
 
@@ -378,12 +378,16 @@ async function confirmBooking() {
 
   try {
     const newBookingData = {
-      user_id: authStore.currentUserId,
       service_id: selectedServiceIds.value[0],
       date: selectedDate.value,
       time: selectedTime.value,
       status: 'pending',
       notes: bookingNotes.value === '' ? null : bookingNotes.value,
+      customer_name: customerName.value,
+      customer_email: customerEmail.value,
+      customer_phone: customerPhone.value,
+      // 如果用戶已登入，則傳遞 user_id
+      ...(authStore.isLoggedIn && { user_id: authStore.currentUserId }),
     };
     const savedBooking = await bookingStore.saveBooking(newBookingData);
 

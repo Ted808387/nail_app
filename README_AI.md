@@ -113,6 +113,7 @@
     *   **營業設定數據持久化修正:** 修正了 `src/services/dataService.js` 中營業設定（公休日、不可預約日期、可預約時間段落）的載入邏輯，確保預設數據只在 `localStorage` 中沒有資料時才寫入，解決了移除後預設數據仍保留的問題。
     *   **預約流程時間段預設邏輯優化:** 優化了 `BookingFlow.vue` 中可預約時間段的生成邏輯，當管理員未設定特定時間段時，將預設顯示營業時間內的所有時間段。
     *   **管理行事曆營業設定整合確認:** 確認 `BookingCalendar.vue` 已正確整合營業設定中的公休日、不可預約日期和營業時間，以標記日曆中的不可預約日期。可預約時間段落主要用於客戶端預約流程，管理員手動預約時可靈活輸入。
+    *   **邏輯重構:** 將判斷日期是否不可預約的邏輯抽離到 `isDayBlocked` 函數中，提高程式碼可讀性和可維護性。
     *   **客戶端預約日期選擇器優化:** 將 `BookingFlow.vue` 中的日期輸入框替換為自定義的 `CustomerCalendar.vue` 組件，提供更直觀的日曆選擇體驗，並顯示已被預約的日期。
     *   **客戶端日曆組件錯誤修正:** 修正了 `CustomerCalendar.vue` 和 `BookingFlow.vue` 中因數據載入時序和 `ref` 變數存取方式導致的 `TypeError`。
     *   **預約流程步驟二錯誤修正:** 修正了 `BookingFlow.vue` 中選擇服務後點擊「下一步」時的錯誤，確保 `filteredAvailableTimes` 和 `isDateBookable` 在營業設定數據載入完成後才進行計算。
@@ -237,7 +238,7 @@
     *   **API 函數：** `fetchServices`, `saveBooking`
     *   **連接點：** 服務選擇、提交預約。
     *   **開發狀態：** 已完成。
-    *   **測試狀態：** 已完成 (第二步驟待測試)。
+    *   **測試狀態：** **已完成**。✅
 
 2.  **`src/views/customer/MyBookings.vue` (我的預約紀錄頁面)**
     *   **API 函數：** `fetchBookings`
@@ -312,6 +313,10 @@
     *   `src/views/public/ServiceList.vue`：已更新為使用 `useServiceStore` 管理服務資料。✅
     *   `src/views/admin/ClientManagement.vue`：已更新為使用 `useClientStore` 管理客戶資料。✅
     *   `src/views/admin/BusinessSettings.vue`：已更新為使用 `useBusinessSettingsStore` 管理營業設定資料。✅
+    *   **`src/stores/booking.js`：** `fetchBookings` 已拆分為 `fetchAllBookings` (獲取所有預約) 和 `fetchMyBookings` (獲取我的預約)。
+    *   **`src/views/customer/BookingFlow.vue`：** 已更新為呼叫 `bookingStore.fetchAllBookings()` 以獲取所有預約數據。
+    *   **`src/views/customer/MyBookings.vue`：** 已更新為呼叫 `bookingStore.fetchMyBookings()` 以獲取當前用戶的預約數據。
+    *   **`src/views/admin/Dashboard.vue`：** 已更新為呼叫 `bookingStore.fetchAllBookings()` 以獲取所有預約數據。
 
 **下一步：** 繼續測試各功能模組，確保 Pinia 整合後所有功能正常運作。
 
@@ -330,3 +335,15 @@
 5.  **前端 `src/stores/auth.js`：** 已更新 `logout` action，呼叫 `logoutUser` API。✅
 
 **下一步：** 測試登出功能，確認 Token 是否正確失效。
+
+### **匿名預約功能**
+
+**目標：** 允許未登入使用者進行預約，登入後才可查看「我的預約」。
+
+**進度：**
+
+1.  **前端 `src/views/customer/BookingFlow.vue`：**
+    *   `confirmBooking` 函數已修改為可選 `user_id`，並傳遞 `customer_name`、`customer_email`、`customer_phone`。
+    *   預約成功頁面的「查看我的預約」按鈕已調整為動態顯示，未登入時引導至登入/註冊頁面。✅
+
+**下一步：** 測試匿名預約功能，確保前後端協同工作正常。
