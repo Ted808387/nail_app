@@ -105,6 +105,10 @@ export const useBookingStore = defineStore('booking', () => {
     }
   }
 
+  function setBookings(newBookings) {
+    bookings.value = newBookings;
+  }
+
   return {
     bookings,
     isLoading,
@@ -114,5 +118,6 @@ export const useBookingStore = defineStore('booking', () => {
     saveBooking,
     updateBooking,
     deleteBooking,
+    setBookings,
   };
 });

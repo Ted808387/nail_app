@@ -267,3 +267,49 @@ export const logoutUser = async () => {
     throw error;
   }
 };
+
+export const fetchPublicProfile = async (slug) => {
+  try {
+    const response = await apiClient.get(`/public/profile/${slug}`);
+    return response.data;
+  } catch (error) {
+    console.error('Error fetching public profile:', error);
+    throw error;
+  }
+};
+
+export const fetchPublicBookingsBySlug = async (slug) => {
+  try {
+    const response = await apiClient.get(`/public/bookings_by_slug/${slug}`);
+    return response.data;
+  } catch (error) {
+    console.error('Error fetching public bookings by slug:', error);
+    throw error;
+  }
+};
+
+export default {
+  fetchMyBookings,
+  fetchAllBookings,
+  saveBooking,
+  updateBooking,
+  deleteBooking,
+  fetchServices,
+  saveService,
+  updateServiceStatus,
+  deleteServiceApi,
+  bulkServiceAction,
+  fetchClients,
+  fetchClientById,
+  updateClient,
+  fetchBusinessSettings,
+  saveBusinessSettings,
+  registerUser,
+  loginUser,
+  fetchUserById,
+  updateUserProfile,
+  changeUserPassword,
+  logoutUser,
+  fetchPublicProfile,
+  fetchPublicBookingsBySlug,
+};

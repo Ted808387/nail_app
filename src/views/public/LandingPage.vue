@@ -1,6 +1,13 @@
 <template>
   <div class="min-h-screen flex flex-col items-center justify-center bg-soft-blue-50">
-    
+    <!-- 友善提醒 -->
+    <div v-if="showReminder" class="w-full bg-soft-blue-200 text-soft-blue-800 p-3 text-center text-sm sm:text-base flex flex-col sm:flex-row justify-center items-center space-y-2 sm:space-y-0 sm:space-x-4 shadow-md">
+      <span>您上次瀏覽的是 <span class="font-semibold">{{ lastVisitedStoreName }}</span>，要直接前往嗎？</span>
+      <div class="flex space-x-2 mt-2 sm:mt-0">
+        <button @click="goToLastVisited" class="px-4 py-1 bg-soft-blue-600 text-white rounded-full text-xs sm:text-sm hover:bg-soft-blue-700 transition duration-300">是</button>
+        <button @click="dismissReminder" class="px-4 py-1 bg-gray-300 text-gray-800 rounded-full text-xs sm:text-sm hover:bg-gray-400 transition duration-300">否</button>
+      </div>
+    </div>
 
     <!-- 品牌形象區 - 輪播/影片 Placeholder -->
     <section class="relative w-full min-h-[50vh] md:h-96 bg-soft-blue-300 flex items-center justify-center text-white text-center overflow-hidden shadow-lg">
@@ -86,15 +93,42 @@
 </template>
 
 <script setup>
-// 這裡可以加入頁面的邏輯，例如從後端獲取資料
-// 例如：
-// import { ref, onMounted } from 'vue';
-// const featuredServices = ref([]);
-// onMounted(async () => {
-//   // 假設有一個 API 來獲取精選服務
-//   // const response = await fetch('/api/featured-services');
-//   // featuredServices.value = await response.json();
-// });
+import { ref, onMounted } from 'vue';
+import { useRouter } from 'vue-router';
+import api from '../../api';
+
+const router = useRouter();
+const showReminder = ref(false);
+const lastVisitedStoreName = ref('');
+const lastVisitedSlug = ref(null);
+
+onMounted(async () => {
+  const storedSlug = localStorage.getItem('lastVisitedSlug');
+  if (storedSlug) {
+    try {
+      const response = await api.get(`/public/profile/${storedSlug}`);
+      if (response.data && response.data.name) {
+        lastVisitedStoreName.value = response.data.name;
+        lastVisitedSlug.value = storedSlug;
+        showReminder.value = true;
+      }
+    } catch (error) {
+      console.error('獲取上次訪問店家資料失敗:', error);
+      localStorage.removeItem('lastVisitedSlug'); // 清除無效的 slug
+    }
+  }
+});
+
+function goToLastVisited() {
+  if (lastVisitedSlug.value) {
+    router.push(`/book/${lastVisitedSlug.value}`);
+  }
+}
+
+function dismissReminder() {
+  showReminder.value = false;
+  localStorage.removeItem('lastVisitedSlug');
+}
 </script>
 
 <style scoped>

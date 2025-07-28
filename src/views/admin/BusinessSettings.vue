@@ -3,6 +3,18 @@
     <h1 class="text-3xl sm:text-4xl font-bold text-soft-blue-800 text-center mb-8 sm:mb-10">營業設定</h1>
 
     <div class="max-w-3xl mx-auto bg-white rounded-2xl shadow-lg p-6 sm:p-8 md:p-10 border border-soft-blue-200">
+      <section class="mb-8 sm:mb-10 pb-8 sm:pb-10 border-b border-soft-blue-200">
+        <h2 class="text-2xl sm:text-3xl font-semibold text-soft-blue-700 mb-5 sm:mb-6">您的專屬預約網址</h2>
+        <div class="flex flex-col sm:flex-row items-center space-y-4 sm:space-y-0 sm:space-x-4">
+          <p class="bg-soft-blue-100 text-soft-blue-800 px-4 py-2 rounded-lg text-base sm:text-lg font-mono break-all">
+            {{ bookingUrl }}
+          </p>
+          <button @click="copyBookingUrl" class="px-6 py-2 bg-soft-blue-600 text-white rounded-full shadow-md hover:bg-soft-blue-700 transition duration-300 text-base sm:text-lg disabled:opacity-50 disabled:cursor-not-allowed">
+            複製連結
+          </button>
+        </div>
+      </section>
+
       <form @submit.prevent="saveSettings">
         <h2 class="text-2xl sm:text-3xl font-semibold text-soft-blue-700 mb-5 sm:mb-6">營業時間</h2>
         <div v-for="day in businessSettingsStore.settings?.business_hours" :key="day.id" class="flex flex-col sm:flex-row items-start sm:items-center mb-4 sm:mb-3">
@@ -93,11 +105,13 @@
 </template>
 
 <script setup>
-import { ref, onMounted } from 'vue';
+import { ref, onMounted, computed } from 'vue';
 import { useNotification } from '../../composables/useNotification';
 import { useBusinessSettingsStore } from '../../stores/businessSettings';
+import { useUserProfileStore } from '../../stores/userProfile';
 
 const businessSettingsStore = useBusinessSettingsStore();
+const userProfileStore = useUserProfileStore();
 const { showSuccess, showError, showInfo } = useNotification();
 
 const newHolidayDate = ref('');
@@ -105,9 +119,30 @@ const newUnavailableDate = ref('');
 const newSlotStartTime = ref('');
 const newSlotEndTime = ref('');
 
+// 計算屬性來生成預約 URL
+const bookingUrl = computed(() => {
+  if (userProfileStore.userProfile && userProfileStore.userProfile.public_slug) {
+    // 假設你的前端應用程式運行在 localhost:5173，並且預約頁面路徑是 /book
+    return `http://localhost:5173/book/${userProfileStore.userProfile.public_slug}`;
+  }
+  return '載入中...';
+});
+
+// 複製連結到剪貼簿
+async function copyBookingUrl() {
+  try {
+    await navigator.clipboard.writeText(bookingUrl.value);
+    showSuccess('預約連結已複製到剪貼簿！');
+  } catch (err) {
+    showError('複製失敗，請手動複製。');
+    console.error('複製失敗:', err);
+  }
+}
+
 // 在組件掛載時載入設定
 onMounted(async () => {
   try {
+    await userProfileStore.fetchUserProfile(); // 確保用戶資料已載入
     await businessSettingsStore.fetchBusinessSettings();
   } catch (error) {
     console.error('載入營業設定失敗:', error);

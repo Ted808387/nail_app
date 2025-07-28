@@ -142,6 +142,7 @@ import { useAuthStore } from '../../stores/auth';
 import { useBookingStore } from '../../stores/booking';
 import { useServiceStore } from '../../stores/service';
 import { useBusinessSettingsStore } from '../../stores/businessSettings';
+import api from '../../api';
 
 const route = useRoute();
 const router = useRouter();
@@ -172,12 +173,32 @@ function parseDateStringAsLocal(dateString) {
 
 onMounted(async () => {
   try {
-    // isLoading.value = true; // Let the stores handle their own loading state
-    await Promise.all([
-      serviceStore.fetchServices(),
-      bookingStore.fetchAllBookings(),
-      businessSettingsStore.fetchBusinessSettings(),
-    ]);
+    const slug = route.params.slug; // 從路由參數中獲取 slug
+
+    if (slug) {
+      // 如果有 slug，則載入該店家的公開資料
+      const publicProfile = await api.fetchPublicProfile(slug);
+      // 將載入的資料更新到 Pinia Store 中
+      serviceStore.setServices(publicProfile.services);
+      businessSettingsStore.setBusinessHours(publicProfile.business_hours);
+      businessSettingsStore.setHolidays(publicProfile.holidays);
+      businessSettingsStore.setUnavailableDates(publicProfile.unavailable_dates);
+      businessSettingsStore.setBookableTimeSlots(publicProfile.bookable_time_slots);
+      localStorage.setItem('lastVisitedSlug', slug); // 儲存 slug 到 localStorage
+
+      // 載入該店家的預約資料
+      const publicBookings = await api.fetchPublicBookingsBySlug(slug);
+      bookingStore.setBookings(publicBookings);
+
+    } else {
+      // 如果沒有 slug，則載入所有服務和設定 (舊行為)
+      await Promise.all([
+        serviceStore.fetchServices(),
+        businessSettingsStore.fetchBusinessSettings(),
+      ]);
+      // 在沒有 slug 的情況下，仍然可以獲取所有預約（如果需要）
+      await bookingStore.fetchAllBookings();
+    }
 
     if (route.query.service) {
       const serviceId = parseInt(route.query.service);
@@ -388,6 +409,8 @@ async function confirmBooking() {
       customer_phone: customerPhone.value,
       // 如果用戶已登入，則傳遞 user_id
       ...(authStore.isLoggedIn && { user_id: authStore.currentUserId }),
+      // 如果有 slug，則傳遞 public_slug
+      ...(route.params.slug && { public_slug: route.params.slug }),
     };
     const savedBooking = await bookingStore.saveBooking(newBookingData);
 

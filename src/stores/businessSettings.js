@@ -44,11 +44,35 @@ export const useBusinessSettingsStore = defineStore('businessSettings', () => {
     }
   }
 
+  function setBusinessHours(hours) {
+    if (!settings.value) settings.value = {};
+    settings.value.business_hours = hours;
+  }
+
+  function setHolidays(holidaysData) {
+    if (!settings.value) settings.value = {};
+    settings.value.holidays = holidaysData;
+  }
+
+  function setUnavailableDates(dates) {
+    if (!settings.value) settings.value = {};
+    settings.value.unavailable_dates = dates;
+  }
+
+  function setBookableTimeSlots(slots) {
+    if (!settings.value) settings.value = {};
+    settings.value.bookable_time_slots = slots;
+  }
+
   return {
     settings,
     isLoading,
     error,
     fetchBusinessSettings,
     saveBusinessSettings,
+    setBusinessHours,
+    setHolidays,
+    setUnavailableDates,
+    setBookableTimeSlots,
   };
 });

@@ -8,7 +8,7 @@
 
 **核心功能 (已確認):**
 *   預約/服務管理系統。
-*   包含公共頁面 (如登陸頁、服務列表) 和管理員後台。
+*   包含公共頁面 (如登陸頁、服務項目列表) 和管理員後台。
 
 **目前進度與重要修改:**
 
@@ -71,7 +71,7 @@
     *   **`Dashboard.vue` 已更新為從 `dataService.js` 載入數據 (此處應為從 API 載入，但此處僅記錄 `useAuth` 相關)。**
     *   `src/router/index.js`：已更新路由守衛，限制已登入用戶訪問登入/註冊頁面。✅
 
-10. **模擬 API 層:**
+10. **API 串接與功能完善:**
     *   **已創建 `src/api/index.js`，用於提供模擬的 API 請求函數。**
     *   **`BookingCalendar.vue` 已更新為使用 `src/api/index.js` 進行數據操作。**
     *   **`ServiceManagement.vue` 已更新為使用 `src/api/index.js` 進行數據操作。**
@@ -244,7 +244,7 @@
     *   **API 函數：** `fetchBookings`
     *   **連接點：** 頁面載入、取消預約。
     *   **開發狀態：** 已完成。
-    *   **測試狀態：** 待測試。
+    *   **測試狀態：** **已完成**。✅
 
 3.  **`src/views/admin/BookingCalendar.vue` (管理員預約行事曆頁面)**
     *   **API 函數：** `fetchBookings`, `saveBooking`, `updateBookingStatus`, `deleteBooking`
@@ -313,10 +313,10 @@
     *   `src/views/public/ServiceList.vue`：已更新為使用 `useServiceStore` 管理服務資料。✅
     *   `src/views/admin/ClientManagement.vue`：已更新為使用 `useClientStore` 管理客戶資料。✅
     *   `src/views/admin/BusinessSettings.vue`：已更新為使用 `useBusinessSettingsStore` 管理營業設定資料。✅
-    *   **`src/stores/booking.js`：** `fetchBookings` 已拆分為 `fetchAllBookings` (獲取所有預約) 和 `fetchMyBookings` (獲取我的預約)。
-    *   **`src/views/customer/BookingFlow.vue`：** 已更新為呼叫 `bookingStore.fetchAllBookings()` 以獲取所有預約數據。
-    *   **`src/views/customer/MyBookings.vue`：** 已更新為呼叫 `bookingStore.fetchMyBookings()` 以獲取當前用戶的預約數據。
-    *   **`src/views/admin/Dashboard.vue`：** 已更新為呼叫 `bookingStore.fetchAllBookings()` 以獲取所有預約數據。
+    *   **`src/stores/booking.js`：** `fetchBookings` 已拆分為 `fetchAllBookings` (獲取所有預約) 和 `fetchMyBookings` (獲取我的預約)。✅
+    *   **`src/views/customer/BookingFlow.vue`：** 已更新為呼叫 `bookingStore.fetchAllBookings()` 以獲取所有預約數據。✅
+    *   **`src/views/customer/MyBookings.vue`：** 已更新為呼叫 `bookingStore.fetchMyBookings()` 以獲取當前用戶的預約數據。✅
+    *   **`src/views/admin/Dashboard.vue`：** 已更新為呼叫 `bookingStore.fetchAllBookings()` 以獲取所有預約數據。✅
 
 **下一步：** 繼續測試各功能模組，確保 Pinia 整合後所有功能正常運作。
 
@@ -334,11 +334,11 @@
 4.  **前端 `src/api/index.js`：** 已新增 `logoutUser` API 函數。✅
 5.  **前端 `src/stores/auth.js`：** 已更新 `logout` action，呼叫 `logoutUser` API。✅
 
-**下一步：** 測試登出功能，確認 Token 是否正確失效。
+**下一步：** 測試登出功能，確認 Token 是否正確失效。✅
 
 ### **匿名預約功能**
 
-**目標：** 允許未登入使用者進行預約，登入後才可查看「我的預約」。
+**目標：** 允許未登入使用者進行預約，登入後才可查看「我的預約」。✅
 
 **進度：**
 
@@ -347,3 +347,45 @@
     *   預約成功頁面的「查看我的預約」按鈕已調整為動態顯示，未登入時引導至登入/註冊頁面。✅
 
 **下一步：** 測試匿名預約功能，確保前後端協同工作正常。
+
+---
+
+## 第二階段：前後端串接 - 實現專屬預約流程 (已完成)
+
+### 1. 後端 - 建立管理員的公開識別碼與 API (`sidep_backend`)
+*   **修改 `models.py`:** 在 `User` 模型中新增 `public_slug` 欄位。
+*   **執行 Alembic 遷移:** 成功應用了 `public_slug` 欄位到資料庫。
+*   **修改 `main.py` (`/auth/register`):** 在管理員註冊的邏輯中，自動生成一個唯一的 `public_slug` 並存入資料庫。
+*   **新增 `main.py` (公開 API):** 建立了一個無需認證的 API 端點 `GET /public/profile/{slug}`，用於根據 slug 回傳店家的公開資訊（服務、設定等）。
+*   **修改 `schemas.py`:** 為 `BookingCreate` 添加 `public_slug` 欄位，並為 `UserResponse` 添加 `public_slug` 欄位，同時定義了 `UserPublicProfileResponse`。
+*   **修改 `main.py` (`POST /bookings`):** 讓此 API 能接收 `public_slug` 參數，以便在建立預約時，能根據 slug 查找到正確的 `owner_id` 並寫入。
+
+### 2. 前端 - 實現專屬預約流程 (`sidep_app`)
+*   **修改 `src/views/admin/BusinessSettings.vue`:**
+    *   新增一個「您的專屬預約網址」區塊，動態顯示完整的預約 URL。
+    *   在 URL 旁提供一個「複製」按鈕，方便管理員一鍵複製。
+    *   導入 `useUserProfileStore` 和 `computed`，並在 `onMounted` 中獲取用戶資料以生成 `public_slug`。
+*   **修改 `src/router/index.js`:** 新增動態路由規則 `{ path: '/book/:slug', name: 'PublicBooking', component: BookingFlow }`。
+*   **修改 `src/views/customer/BookingFlow.vue`:**
+    *   頁面載入時，從路由參數 `:slug` 中取得店家代號。
+    *   使用此 slug 呼叫後端的 `GET /public/profile/{slug}` API 來載入該店家的專屬資料，並更新 Pinia Store。
+    *   客戶提交預約時，請求中必須附帶上這個 slug。
+
+## 第三階段：使用者體驗優化 - 確立單一事實來源 (已完成)
+
+### 1. 確立 URL 為唯一事實來源
+*   **修改 `src/router/index.js`:** 調整路由守衛，確保訪問沒有 slug 的 `/` 或 `/booking` 網址時，不會根據 `localStorage` 或 `cookie` 中的舊紀錄自動跳轉到特定店家的頁面，而是導向中立的歡迎頁或店家總覽頁 (目前為 `LandingPage`)。
+
+## 目前狀態
+
+*   前端專案 `sidep_app` 中的 `src/api/index.js` 檔案已完成修改，所有模擬的 `dataService` 呼叫都已替換為對後端 FastAPI API 的實際 HTTP 請求。
+*   `addTimeSlotApi` 和 `removeTimeSlotApi` 這些函數在前端仍有 `console.warn` 提示，因為後端目前沒有直接對應的 API 端點。
+*   **第一階段「核心後端改造 - 建立資料所有權」已全部完成。**
+*   **第二階段「前後端串接 - 實現專屬預約流程」已全部完成。**
+*   **第三階段「使用者體驗優化 - 確立單一事實來源」已全部完成。**
+
+**下一步：**
+
+1.  **啟動前端開發伺服器：** 在 `sidep_app` 資料夾中執行 `npm run dev`。
+2.  **啟動後端 FastAPI 應用程式：** 在 `sidep_backend` 資料夾中執行 `uvicorn main:app --reload`。
+3.  **測試前端應用程式：** 在瀏覽器中訪問前端應用程式，並測試其功能，例如註冊、登入、查看服務、預約等，看看它們是否能正確地與後端互動。

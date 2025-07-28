@@ -26,6 +26,10 @@ export const useServiceStore = defineStore('service', () => {
     }
   }
 
+  function setServices(newServices) {
+    services.value = newServices;
+  }
+
   async function saveService(serviceData) {
     isLoading.value = true;
     error.value = null;
@@ -124,5 +128,6 @@ export const useServiceStore = defineStore('service', () => {
     updateServiceStatus,
     deleteService,
     bulkServiceAction,
+    setServices,
   };
 });

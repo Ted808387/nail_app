@@ -40,6 +40,11 @@ const routes = [
     component: BookingFlow
   },
   {
+    path: '/book/:slug',
+    name: 'PublicBooking',
+    component: BookingFlow
+  },
+  {
     path: '/my-bookings',
     name: 'MyBookings',
     component: MyBookings,
@@ -114,6 +119,15 @@ router.beforeEach(async (to, from, next) => {
 
   const isAuthenticated = authStore.isLoggedIn;
   const isAdmin = authStore.isAdmin;
+
+  // 處理 / 和 /booking 路由，確保不自動跳轉到特定店家
+  if ((to.path === '/' || to.path === '/booking') && !to.params.slug) {
+    // 這裡可以導向一個中立的歡迎頁或店家總覽頁
+    // 目前我們沒有店家總覽頁，所以暫時導向到 LandingPage
+    // 如果有需要，可以在此處添加邏輯來檢查 localStorage 中的 lastVisitedSlug 並給出提示
+    next(); // 允許導航到 LandingPage 或 BookingFlow (無 slug)
+    return;
+  }
 
   // 如果已登入，且嘗試訪問登入或註冊頁面，則重定向
   if (isAuthenticated && (to.path === '/account/signin' || to.path === '/account/signup')) {
