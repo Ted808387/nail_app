@@ -73,7 +73,7 @@
 
       <!-- 新增/修改預約的 Modal -->
       <div v-if="isModalOpen" class="fixed inset-0 bg-black bg-opacity-40 flex items-center justify-center z-50 p-4">
-        <div class="bg-white rounded-2xl shadow-xl p-8 w-full max-w-md relative border border-soft-blue-200">
+        <div class="bg-white rounded-2xl shadow-xl p-8 w-full max-w-md relative border border-soft-blue-200 max-h-[90vh] overflow-y-auto">
           <button @click="closeBookingModal" class="absolute top-4 right-4 text-gray-500 hover:text-gray-700 text-3xl font-bold">&times;</button>
           <h2 class="text-3xl font-bold text-soft-blue-800 mb-6">{{ editingBooking.booking_reference_id ? '編輯' : '新增' }}預約</h2>
           <form @submit.prevent="saveBooking">
@@ -93,9 +93,14 @@
                 class="shadow appearance-none border border-soft-blue-300 rounded-xl w-full py-3 px-4 text-gray-700 leading-tight focus:outline-none focus:shadow-outline focus:border-soft-blue-400">
             </div>
             <div class="mb-4">
-              <label for="serviceName" class="block text-soft-blue-700 text-sm font-bold mb-2">服務項目 <span class="text-red-500">*</span></label>
-              <input type="text" id="serviceName" v-model="editingBooking.serviceName" required
-                class="shadow appearance-none border border-soft-blue-300 rounded-xl w-full py-3 px-4 text-gray-700 leading-tight focus:outline-none focus:shadow-outline focus:border-soft-blue-400">
+              <label for="serviceId" class="block text-soft-blue-700 text-sm font-bold mb-2">服務項目 <span class="text-red-500">*</span></label>
+              <select id="serviceId" v-model="editingBooking.service_id" required
+                class="shadow appearance-none border border-soft-blue-300 rounded-xl w-full py-3 px-4 text-gray-700 leading-tight focus:outline-none focus:shadow-outline focus:border-soft-blue-400 bg-white">
+                <option disabled value="">請選擇一個服務</option>
+                <option v-for="service in serviceStore.services" :key="service.id" :value="service.id">
+                  {{ service.name }}
+                </option>
+              </select>
             </div>
             <div class="mb-4">
               <label for="bookingDate" class="block text-soft-blue-700 text-sm font-bold mb-2">日期 <span class="text-red-500">*</span></label>
@@ -362,71 +367,129 @@ function closeBookingModal() {
 
 // 儲存預約
 async function saveBooking() {
-  try {
-    let bookingData = {};
-    let userId = null;
-    let customerName = editingBooking.value.clientName;
-    let customerEmail = editingBooking.value.customer_email;
-    let customerPhone = editingBooking.value.customer_phone;
+try {
+  let bookingData = {};
+  let userId = null;
+  let customerName = editingBooking.value.clientName;
+  let customerEmail = editingBooking.value.customer_email;
+  let customerPhone = editingBooking.value.customer_phone;
 
-    // 處理客戶資訊：判斷是現有客戶還是匿名客戶
-    const client = clientStore.clients.find(c => c.name === customerName);
-    console.log(client)
-    if (client) {
-      userId = client.id;
-      customerName = null;
-      customerEmail = null;
-      customerPhone = null;
-    } else {
-      userId = null;
-      if (!customerName || !customerEmail || !customerPhone) {
-        showError('對於新的匿名客戶，姓名、Email和電話為必填項。');
-        return;
-      }
-    }
+  // 處理客戶資訊：如果輸入的客戶姓名對應到已註冊的客戶，就使用該客戶的 ID
+  const client = clientStore.clients.find(c => c.name === customerName);
+  if (client) {
+    userId = client.id;
+    customerName = null;
+    customerEmail = null;
+    customerPhone = null;
+  } else {
+    userId = null;
+  }
 
-    if (editingBooking.value.id) {
-      // --- 編輯模式 ---
-      bookingData = {
-        ...editingBooking.value, // 包含原有的 id, user_id, service_id 等
-        user_id: userId,
-        status: editingBooking.value.status,
-        notes: editingBooking.value.notes,
-        customer_name: customerName,
-        customer_email: customerEmail,
-        customer_phone: customerPhone,
-      };
-      await bookingStore.updateBooking(editingBooking.value.id, bookingData);
-      showSuccess('預約已更新！');
-    } else {
-      // --- 新增模式 ---
-      const service = serviceStore.services.find(s => s.name === editingBooking.value.serviceName);
-      if (!service) {
-        showError('服務項目不存在，請確認名稱是否完全匹配。');
-        return;
-      }
+  // 檢查服務項目是否已從下拉選單中選擇
+  if (!editingBooking.value.service_id) {
+    showError('請選擇一個服務項目。');
+    return;
+  }
 
-      bookingData = {
-        user_id: userId,
-        service_id: service.id,
-        date: editingBooking.value.date,
-        time: editingBooking.value.time,
-        status: editingBooking.value.status || 'pending',
-        notes: editingBooking.value.notes,
-        customer_name: customerName,
-        customer_email: customerEmail,
-        customer_phone: customerPhone,
-      };
-      await bookingStore.saveBooking(bookingData);
-      showSuccess('預約已新增！');
-    }
-
-    closeBookingModal();
+  if (editingBooking.value.id) {
+    // --- 編輯模式 ---
+    bookingData = {
+      ...editingBooking.value,
+      user_id: userId,
+      service_id: editingBooking.value.service_id, // 直接從 v-model 獲取
+      status: editingBooking.value.status,
+      notes: editingBooking.value.notes,
+      customer_name: customerName,
+      customer_email: customerEmail,
+      customer_phone: customerPhone,
+    };
+    await bookingStore.updateBooking(editingBooking.value.id, bookingData);
+    showSuccess('預約已更新！');
+  } else {
+    // --- 新增模式 ---
+    bookingData = {
+      user_id: userId,
+      service_id: editingBooking.value.service_id, // 直接從 v-model 獲取
+      date: editingBooking.value.date,
+      time: editingBooking.value.time,
+      status: editingBooking.value.status || 'pending',
+      notes: editingBooking.value.notes,
+      customer_name: customerName,
+      customer_email: customerEmail,
+      customer_phone: customerPhone,
+    };
+    await bookingStore.saveBooking(bookingData);
+    showSuccess('預約已新增！');
+  }
+  closeBookingModal();
   } catch (error) {
     console.error('儲存預約失敗:', error);
-    showError(bookingStore.error || '儲存預約失敗，請稍後再試。');
+    showError(bookingStore.error || '儲存預約失敗，請檢查所有必填欄位。');
   }
 }
+// 儲存預約
+// async function saveBooking() {
+//   try {
+//     let bookingData = {};
+//     let userId = null;
+//     let customerName = editingBooking.value.clientName;
+//     let customerEmail = editingBooking.value.customer_email;
+//     let customerPhone = editingBooking.value.customer_phone;
+
+//     // 處理客戶資訊：如果輸入的客戶姓名對應到已註冊的客戶，就使用該客戶的 ID
+//     const client = clientStore.clients.find(c => c.name === customerName);
+//     if (client) {
+//       userId = client.id;
+//       customerName = null;
+//       customerEmail = null;
+//       customerPhone = null;
+//     } else {
+//       userId = null;
+//     }
+
+//     // 檢查服務項目是否已選擇
+//     if (!editingBooking.value.service_id) {
+//       showError('請選擇一個服務項目。');
+//       return;
+//     }
+
+//     if (editingBooking.value.id) {
+//       // --- 編輯模式 ---
+//       bookingData = {
+//         ...editingBooking.value,
+//         user_id: userId,
+//         service_id: editingBooking.value.service_id, // 直接從 v-model 獲取
+//         status: editingBooking.value.status,
+//         notes: editingBooking.value.notes,
+//         customer_name: customerName,
+//         customer_email: customerEmail,
+//         customer_phone: customerPhone,
+//       };
+//       await bookingStore.updateBooking(editingBooking.value.id, bookingData);
+//       showSuccess('預約已更新！');
+//     } else {
+//       // --- 新增模式 ---
+//       bookingData = {
+//         user_id: userId,
+//         service_id: editingBooking.value.service_id, // 直接從 v-model 獲取
+//         date: editingBooking.value.date,
+//         time: editingBooking.value.time,
+//         status: editingBooking.value.status || 'pending',
+//         notes: editingBooking.value.notes,
+//         customer_name: customerName,
+//         customer_email: customerEmail,
+//         customer_phone: customerPhone,
+//       };
+//       await bookingStore.saveBooking(bookingData);
+//       showSuccess('預約已新增！');
+//     }
+
+//     closeBookingModal();
+//   } catch (error) {
+//     console.error('儲存預約失敗:', error);
+//     showError(bookingStore.error || '儲存預約失敗，請檢查所有必填欄位。');
+//   }
+// }
 
 // 刪除預約
 async function deleteBooking(id) {
