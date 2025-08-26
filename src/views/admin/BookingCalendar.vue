@@ -213,10 +213,12 @@ const calendarDays = computed(() => {
   const holidays = businessSettingsStore.settings?.holidays || [];
   const unavailableDates = businessSettingsStore.settings?.unavailable_dates || [];
 
-  console.log('--- Calendar Day Calculation ---');
-  console.log('Business Hours:', businessHours);
-  console.log('Holidays:', holidays);
-  console.log('Unavailable Dates:', unavailableDates);
+  // 輔助函數，用於處理單個預約對象，添加客戶和服務名稱
+  const mapBookingDetails = (booking) => ({
+    ...booking,
+    clientName: booking.clientName || allClients.find(c => c.id === booking.user_id)?.name || '未知客戶',
+    serviceName: availableServices.find(s => s.id === booking.service_id)?.name || '未知服務',
+  });
 
   if (currentView.value === 'month') {
     const year = currentDate.value.getFullYear();
@@ -224,25 +226,17 @@ const calendarDays = computed(() => {
     const firstDayOfMonth = new Date(year, month, 1);
     const lastDayOfMonth = new Date(year, month + 1, 0);
 
-    // 填充上個月的空白
-    const startDay = firstDayOfMonth.getDay(); // 0 for Sunday, 1 for Monday...
+    const startDay = firstDayOfMonth.getDay();
     for (let i = 0; i < startDay; i++) {
       days.push({ date: '', dayOfMonth: '', isCurrentMonth: false, bookings: [], isBlocked: false, isToday: false });
     }
 
-    // 填充本月天數
     for (let i = 1; i <= lastDayOfMonth.getDate(); i++) {
       const date = new Date(year, month, i);
       const dateString = formatDateToYYYYMMDD(date);
-      const dayBookings = bookings.filter(b => b.date === dateString).map(b => ({
-        ...b,
-        clientName: allClients.find(c => c.id === b.user_id)?.name || '未知客戶',
-        serviceName: availableServices.find(s => s.id === b.service_id)?.name || '未知服務',
-      }));
+      const dayBookings = bookings.filter(b => b.date === dateString).map(mapBookingDetails);
       const isBlocked = isDayBlocked(date, dateString, businessHours, holidays, unavailableDates);
       const isToday = date.getTime() === today.getTime();
-
-      console.log(`Date: ${dateString}, DayOfWeek: ${date.getDay()}, IsBlocked: ${isBlocked}`);
 
       days.push({
         date: dateString,
@@ -255,26 +249,20 @@ const calendarDays = computed(() => {
     }
   } else if (currentView.value === 'week') {
     const startOfWeek = new Date(currentDate.value);
-    startOfWeek.setDate(currentDate.value.getDate() - startOfWeek.getDay()); // 設置為本週日
+    startOfWeek.setDate(currentDate.value.getDate() - startOfWeek.getDay());
 
     for (let i = 0; i < 7; i++) {
       const date = new Date(startOfWeek);
       date.setDate(startOfWeek.getDate() + i);
       const dateString = formatDateToYYYYMMDD(date);
-      const dayBookings = bookings.filter(b => b.date === dateString).map(b => ({
-        ...b,
-        clientName: allClients.find(c => c.id === b.user_id)?.name || '未知客戶',
-        serviceName: availableServices.find(s => s.id === b.service_id)?.name || '未知服務',
-      }));
+      const dayBookings = bookings.filter(b => b.date === dateString).map(mapBookingDetails);
       const isBlocked = isDayBlocked(date, dateString, businessHours, holidays, unavailableDates);
       const isToday = date.getTime() === today.getTime();
-
-      console.log(`Date: ${dateString}, DayOfWeek: ${date.getDay()}, IsBlocked: ${isBlocked}`);
 
       days.push({
         date: dateString,
         dayOfMonth: date.getDate(),
-        isCurrentMonth: true, // 週視圖中，所有天數都視為「當前」
+        isCurrentMonth: true,
         bookings: dayBookings,
         isBlocked: isBlocked,
         isToday: isToday
@@ -283,20 +271,14 @@ const calendarDays = computed(() => {
   } else { // day view
     const date = new Date(currentDate.value);
     const dateString = formatDateToYYYYMMDD(date);
-    const dayBookings = bookings.filter(b => b.date === dateString).map(b => ({
-        ...b,
-        clientName: allClients.find(c => c.id === b.user_id)?.name || '未知客戶',
-        serviceName: availableServices.find(s => s.id === b.service_id)?.name || '未知服務',
-      }));
+    const dayBookings = bookings.filter(b => b.date === dateString).map(mapBookingDetails);
     const isBlocked = isDayBlocked(date, dateString, businessHours, holidays, unavailableDates);
     const isToday = date.getTime() === today.getTime();
-
-    console.log(`Date: ${dateString}, DayOfWeek: ${date.getDay()}, IsBlocked: ${isBlocked}`);
 
     days.push({
       date: dateString,
       dayOfMonth: date.getDate(),
-      isCurrentMonth: true, // 日視圖中，永遠是「當前」
+      isCurrentMonth: true,
       bookings: dayBookings,
       isBlocked: isBlocked,
       isToday: isToday
@@ -381,76 +363,61 @@ function closeBookingModal() {
 // 儲存預約
 async function saveBooking() {
   try {
-    const service = serviceStore.services.find(s => s.name === editingBooking.value.serviceName);
-    if (!service) {
-      showError('服務項目不存在。');
-      return;
-    }
-
+    let bookingData = {};
     let userId = null;
     let customerName = editingBooking.value.clientName;
     let customerEmail = editingBooking.value.customer_email;
     let customerPhone = editingBooking.value.customer_phone;
 
-    if (editingBooking.value.id) {
-      // 編輯現有預約
-      // 如果客戶姓名沒有改變，則使用原有的 user_id
-      if (editingBooking.value.clientName === editingBooking.value.originalClientName) {
-        userId = editingBooking.value.user_id;
-      } else {
-        // 客戶姓名改變了，嘗試查找新客戶
-        const client = clientStore.clients.find(c => c.name === editingBooking.value.clientName);
-        if (client) {
-          userId = client.id;
-          customerName = null; // 如果是註冊用戶，清空匿名客戶資訊
-          customerEmail = null;
-          customerPhone = null;
-        } else {
-          // 新客戶姓名未註冊，則視為匿名預約
-          userId = null;
-          if (!customerName || !customerEmail || !customerPhone) {
-            showError('客戶姓名、Email和電話是匿名預約的必填項。');
-            return;
-          }
-        }
-      }
+    // 處理客戶資訊：判斷是現有客戶還是匿名客戶
+    const client = clientStore.clients.find(c => c.name === customerName);
+    console.log(client)
+    if (client) {
+      userId = client.id;
+      customerName = null;
+      customerEmail = null;
+      customerPhone = null;
     } else {
-      // 新增預約
-      const client = clientStore.clients.find(c => c.name === editingBooking.value.clientName);
-      if (client) {
-        // 客戶已註冊
-        userId = client.id;
-        customerName = null; // 如果是註冊用戶，清空匿名客戶資訊
-        customerEmail = null;
-        customerPhone = null;
-      } else {
-        // 客戶未註冊，視為匿名預約
-        userId = null;
-        if (!customerName || !customerEmail || !customerPhone) {
-          showError('客戶姓名、Email和電話是匿名預約的必填項。');
-          return;
-        }
+      userId = null;
+      if (!customerName || !customerEmail || !customerPhone) {
+        showError('對於新的匿名客戶，姓名、Email和電話為必填項。');
+        return;
       }
     }
 
-    const bookingData = {
-      user_id: userId,
-      service_id: service.id,
-      date: editingBooking.value.date,
-      time: editingBooking.value.time,
-      status: editingBooking.value.status || 'pending',
-      notes: editingBooking.value.notes,
-      customer_name: customerName,
-      customer_email: customerEmail,
-      customer_phone: customerPhone,
-    };
-
-    let savedBooking;
     if (editingBooking.value.id) {
-      savedBooking = await bookingStore.updateBooking(editingBooking.value.id, bookingData);
+      // --- 編輯模式 ---
+      bookingData = {
+        ...editingBooking.value, // 包含原有的 id, user_id, service_id 等
+        user_id: userId,
+        status: editingBooking.value.status,
+        notes: editingBooking.value.notes,
+        customer_name: customerName,
+        customer_email: customerEmail,
+        customer_phone: customerPhone,
+      };
+      await bookingStore.updateBooking(editingBooking.value.id, bookingData);
       showSuccess('預約已更新！');
     } else {
-      savedBooking = await bookingStore.saveBooking(bookingData);
+      // --- 新增模式 ---
+      const service = serviceStore.services.find(s => s.name === editingBooking.value.serviceName);
+      if (!service) {
+        showError('服務項目不存在，請確認名稱是否完全匹配。');
+        return;
+      }
+
+      bookingData = {
+        user_id: userId,
+        service_id: service.id,
+        date: editingBooking.value.date,
+        time: editingBooking.value.time,
+        status: editingBooking.value.status || 'pending',
+        notes: editingBooking.value.notes,
+        customer_name: customerName,
+        customer_email: customerEmail,
+        customer_phone: customerPhone,
+      };
+      await bookingStore.saveBooking(bookingData);
       showSuccess('預約已新增！');
     }
 
@@ -458,7 +425,6 @@ async function saveBooking() {
   } catch (error) {
     console.error('儲存預約失敗:', error);
     showError(bookingStore.error || '儲存預約失敗，請稍後再試。');
-  } finally {
   }
 }
 
