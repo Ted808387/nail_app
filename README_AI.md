@@ -250,7 +250,7 @@
     *   **API 函數：** `fetchBookings`, `saveBooking`, `updateBookingStatus`, `deleteBooking`
     *   **連接點：** 頁面載入、新增/更新/刪除預約。
     *   **開發狀態：** 已完成。
-    *   **測試狀態：** 待測試。
+    *   **測試狀態：** **已完成**。✅
 
 4.  **`src/views/admin/Dashboard.vue` (管理員儀表板頁面)**
     *   **API 函數：** `fetchBookings`
