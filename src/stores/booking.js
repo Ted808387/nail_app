@@ -18,7 +18,7 @@ export const useBookingStore = defineStore('booking', () => {
     try {
       const fetchedBookings = await apiFetchAllBookings();
       bookings.value = fetchedBookings;
-      showSuccess('預約資料載入成功！');
+      // showSuccess('預約資料載入成功！');
     } catch (err) {
       error.value = err;
       showError('載入預約資料失敗！');
@@ -34,7 +34,7 @@ export const useBookingStore = defineStore('booking', () => {
     try {
       const fetchedBookings = await apiFetchMyBookings();
       bookings.value = fetchedBookings;
-      showSuccess('我的預約資料載入成功！');
+      // showSuccess('我的預約資料載入成功！');
     } catch (err) {
       error.value = err;
       showError('載入我的預約資料失敗！');
@@ -55,7 +55,7 @@ export const useBookingStore = defineStore('booking', () => {
       } else {
         bookings.value.push(newBooking);
       }
-      showSuccess('預約已成功儲存！');
+      // showSuccess('預約已成功儲存！');
       return newBooking;
     } catch (err) {
       error.value = err;
@@ -76,7 +76,7 @@ export const useBookingStore = defineStore('booking', () => {
       if (index !== -1) {
         bookings.value[index] = updatedBooking;
       }
-      showSuccess('預約已成功更新！');
+      // showSuccess('預約已成功更新！');
       return updatedBooking;
     } catch (err) {
       error.value = err;
@@ -94,7 +94,7 @@ export const useBookingStore = defineStore('booking', () => {
     try {
       await apiDeleteBooking(bookingId);
       bookings.value = bookings.value.filter(b => b.id !== bookingId);
-      showSuccess('預約已成功刪除！');
+      // showSuccess('預約已成功刪除！');
     } catch (err) {
       error.value = err;
       showError('刪除預約失敗！');

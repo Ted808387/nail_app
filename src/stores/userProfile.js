@@ -16,7 +16,7 @@ export const useUserProfileStore = defineStore('userProfile', () => {
     try {
       const fetchedProfile = await apiFetchUserById();
       userProfile.value = fetchedProfile;
-      showSuccess('用戶個人資料載入成功！');
+      // showSuccess('用戶個人資料載入成功！');
     } catch (err) {
       error.value = err;
       showError('載入用戶個人資料失敗！');

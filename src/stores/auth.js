@@ -41,7 +41,7 @@ export const useAuthStore = defineStore('auth', () => {
     try {
       await logoutUser(); // 呼叫後端登出 API
       router.push('/account/signin'); // 登出後導向登入頁面
-      showSuccess('您已成功登出。');
+      // showSuccess('您已成功登出。');
     } catch (error) {
       console.error('登出 API 呼叫失敗:', error);
       // 即使 API 呼叫失敗，前端也應該清除本地狀態，確保用戶登出

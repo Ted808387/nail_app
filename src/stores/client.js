@@ -17,7 +17,7 @@ export const useClientStore = defineStore('client', () => {
     try {
       const fetchedClients = await apiFetchClients();
       clients.value = fetchedClients;
-      showSuccess('客戶資料載入成功！');
+      // showSuccess('客戶資料載入成功！');
     } catch (err) {
       error.value = err;
       showError('載入客戶資料失敗！');
@@ -33,7 +33,7 @@ export const useClientStore = defineStore('client', () => {
     try {
       const fetchedClient = await apiFetchClientById(id);
       currentClient.value = fetchedClient;
-      showSuccess('客戶詳情載入成功！');
+      // showSuccess('客戶詳情載入成功！');
       return fetchedClient;
     } catch (err) {
       error.value = err;

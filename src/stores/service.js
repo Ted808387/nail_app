@@ -16,7 +16,7 @@ export const useServiceStore = defineStore('service', () => {
     try {
       const fetchedServices = await apiFetchServices();
       services.value = fetchedServices;
-      showSuccess('服務資料載入成功！');
+      // showSuccess('服務資料載入成功！');
     } catch (err) {
       error.value = err;
       showError('載入服務資料失敗！');

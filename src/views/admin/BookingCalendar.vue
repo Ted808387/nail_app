@@ -144,7 +144,7 @@
 
 <script setup>
 import { ref, computed, watch, onMounted } from 'vue';
-import { useNotification } from '../../composables/useNotification';
+import { useNotification } from '@/composables/useNotification.js';
 import { useAuthStore } from '../../stores/auth';
 import { useBookingStore } from '../../stores/booking';
 import { useServiceStore } from '../../stores/service';
@@ -466,7 +466,7 @@ try {
 //         customer_phone: customerPhone,
 //       };
 //       await bookingStore.updateBooking(editingBooking.value.id, bookingData);
-//       showSuccess('預約已更新！');
+//       // showSuccess('預約已更新！');
 //     } else {
 //       // --- 新增模式 ---
 //       bookingData = {
@@ -481,7 +481,7 @@ try {
 //         customer_phone: customerPhone,
 //       };
 //       await bookingStore.saveBooking(bookingData);
-//       showSuccess('預約已新增！');
+//       // showSuccess('預約已新增！');
 //     }
 
 //     closeBookingModal();

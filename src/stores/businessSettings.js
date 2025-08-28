@@ -16,7 +16,7 @@ export const useBusinessSettingsStore = defineStore('businessSettings', () => {
     try {
       const fetchedSettings = await apiFetchBusinessSettings();
       settings.value = fetchedSettings;
-      showSuccess('營業設定資料載入成功！');
+      // showSuccess('營業設定資料載入成功！');
     } catch (err) {
       error.value = err;
       showError('載入營業設定資料失敗！');

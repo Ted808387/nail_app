@@ -2,7 +2,7 @@
   <div class="min-h-screen flex items-center justify-center bg-soft-blue-50 p-4 sm:p-6 md:p-8">
     <div class="w-full max-w-md bg-white rounded-2xl shadow-lg p-6 sm:p-8 md:p-10 border border-soft-blue-200">
       <h1 class="text-2xl sm:text-3xl font-bold text-soft-blue-800 text-center mb-6 sm:mb-8">登入</h1>
-      <form @submit.prevent="handleSignIn">
+      <form>
         <div class="mb-4 sm:mb-5">
           <label for="email" class="block text-soft-blue-700 text-sm sm:text-base font-bold mb-2">Email <span class="text-red-500">*</span></label>
           <input type="email" id="email" v-model="email" required
@@ -28,7 +28,7 @@
 
         <p v-if="loginError" class="text-red-500 text-center text-sm mb-3 sm:mb-4">{{ loginError }}</p>
 
-        <button type="submit" :disabled="isLoading"
+        <button type="button" @click="handleSignIn" :disabled="isLoading"
           class="w-full bg-soft-blue-600 hover:bg-soft-blue-700 text-white font-bold py-2 sm:py-3 px-3 sm:px-4 rounded-xl focus:outline-none focus:shadow-outline transition duration-300 disabled:opacity-50 disabled:cursor-not-allowed">
           {{ isLoading ? '登入中...' : '登入' }}
         </button>
@@ -44,7 +44,7 @@
 <script setup>
 import { ref, onMounted } from 'vue';
 import { useRouter } from 'vue-router';
-import { useNotification } from '../../composables/useNotification';
+import { useNotification } from '@/composables/useNotification.js';
 import { useAuthStore } from '../../stores/auth'; // 引入 Pinia 的 auth store
 import { storeToRefs } from 'pinia'; // 引入 storeToRefs
 
@@ -85,33 +85,25 @@ function validateForm() {
 }
 
 async function handleSignIn() {
-  console.trace('handleSignIn 被呼叫');
   if (!validateForm()) {
     return;
   }
 
   isLoading.value = true;
   try {
-    console.log('嘗試登入:', { email: email.value, password: password.value, rememberMe: rememberMe.value });
-
-    const success = await authStore.login(email.value, password.value); // 使用 authStore 的 login 方法
-
-    if (success) {
-      showSuccess('登入成功！');
-      // 登入成功後，根據用戶角色進行路由跳轉
-      if (isAdmin.value) { // 使用解構後的 isAdmin
-        router.push('/admin');
-      } else {
-        router.push('/my-bookings');
-      }
+    await authStore.login(email.value, password.value);
+    showSuccess('登入成功！');
+    
+    // 登入成功後，根據用戶角色進行路由跳轉
+    if (isAdmin.value) {
+      router.push('/admin');
     } else {
-      // 登入失敗的錯誤訊息已在 authStore 內部處理
-      loginError.value = 'Email 或密碼不正確。'; // 這裡可以保留一個通用的錯誤訊息
+      router.push('/my-bookings');
     }
-
   } catch (error) {
     console.error('登入過程中發生錯誤:', error);
-    showError(error.detail || '登入失敗，請稍後再試。');
+    const errorMessage = error.response?.data?.detail || '登入失敗，請檢查您的帳號或密碼。';
+    showError(errorMessage);
   } finally {
     isLoading.value = false;
   }

@@ -33,7 +33,7 @@ apiClient.interceptors.response.use(
     return response;
   },
   (error) => {
-    if (error.response && error.response.status === 401) {
+    if (error.response && error.response.status === 401 && error.config.url !== '/auth/login') {
       const authStore = useAuthStore(); // 在這裡獲取 auth store 實例
       authStore.logout(); // 呼叫 Pinia store 的 logout action
       window.location.href = '/account/signin'; // 強制重新導向
