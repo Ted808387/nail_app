@@ -15,6 +15,9 @@ export default defineConfig({
       '@': fileURLToPath(new URL('./src', import.meta.url))
     },
   },
+  server: {
+    host: true,
+  },
   // 添加 Vitest 配置
   test: {
     globals: true, // 讓測試 API (describe, it, expect) 全局可用
